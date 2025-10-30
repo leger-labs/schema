@@ -1,0 +1,782 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/leger-labs/leger-schema/v1.0.0/schema.json",
+  
+  "title": "Leger Manifest Schema",
+  "description": "Single source of truth for Podman Quadlet generation from user decisions",
+  
+  "_comment_schema_version": "Semantic version of this schema structure (breaking changes = major bump)",
+  "schema_version": "1.0.0",
+  
+  "_comment_release": "======== RELEASE CATALOG ======== Defines what's available in this version",
+  "release": {
+    "_comment": "Version-pinned container images and metadata for this release",
+    
+    "version": "v1.0.0",
+    "released_at": "2025-10-22T00:00:00Z",
+    "template_version": "v1.0.0",
+    "changelog_url": "https://github.com/leger-labs/leger-schema/releases/tag/v1.0.0",
+    
+    "_comment_services": "Container services available in this release",
+    "services": {
+      "service_id": {
+        "_comment": "Service identifier used in templates and dependencies",
+        
+        "name": "Human-readable service name",
+        "description": "What this service does",
+        
+        "_comment_version": "Semantic version of the container (x.x.x format, NO :latest)",
+        "version": "0.6.34",
+        
+        "_comment_image": "Registry path WITHOUT version tag (version is separate field)",
+        "image": "ghcr.io/open-webui/open-webui",
+        
+        "_comment_port": "Internal container port (EXCEPTION: included in schema for discovery)",
+        "port": 8080,
+        
+        "_comment_dependencies": "Services that must start before this one",
+        "dependencies": {
+          "required": ["openwebui_postgres", "openwebui_redis"],
+          "optional": {
+            "_comment": "Feature-gated dependencies: if user enables feature, these are required",
+            "rag": ["qdrant"],
+            "web_search": ["searxng"]
+          }
+        },
+        
+        "_comment_enabled_by": "Declarative conditions for auto-enabling this service",
+        "enabled_by": [
+          "_comment: Logical OR array - any condition true = service enabled",
+          "topology.features.rag == true && topology.providers.vector_db == 'qdrant'"
+        ],
+        
+        "_comment_template_files": "Which .njk templates to render for this service",
+        "template_files": ["container", "volume", "env", "caddy"],
+        
+        "_comment_notes": "Human-readable notes about this version",
+        "notes": "Updated to 0.6.34 for MinerU parser support"
+      }
+    },
+    
+    "_comment_integrations": "Third-party external services (no containers deployed)",
+    "integrations": {
+      "integration_id": {
+        "name": "Human-readable integration name",
+        "type": "web_search | vector_db | tts | stt | image | storage",
+        "requires_api_key": true,
+        "api_endpoint": "https://api.service.com",
+        "provides_features": ["web_search"],
+        "provider_value": "tavily",
+        "_comment": "When user selects this integration as provider, these env vars are set"
+      }
+    },
+    
+    "_comment_compatibility": "Platform requirements for this release",
+    "compatibility": {
+      "podman": ">=4.0.0",
+      "systemd": ">=249",
+      "platform": ["linux/amd64", "linux/arm64"]
+    }
+  },
+  
+  "_comment_topology": "======== USER CONFIGURATION SCHEMA ======== JSON Schema for validation + RJSF UI generation",
+  "topology": {
+    "type": "object",
+    "required": ["network", "installed", "features", "providers"],
+    
+    "properties": {
+      "_comment_network": "Container network configuration",
+      "network": {
+        "type": "object",
+        "title": "Network Configuration",
+        "x-category": "Infrastructure",
+        "x-display-order": 1,
+        
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Network Name",
+            "default": "llm",
+            "pattern": "^[a-z0-9-]+$"
+          },
+          "subnet": {
+            "type": "string",
+            "title": "Network Subnet",
+            "default": "10.89.0.0/24",
+            "pattern": "^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}/\\d{1,2}$"
+          }
+        }
+      },
+      
+      "_comment_installed": "Resources the user has explicitly installed",
+      "installed": {
+        "type": "object",
+        "title": "Installed Resources",
+        "description": "Services, models, and integrations from marketplace",
+        
+        "properties": {
+          "services": {
+            "type": "array",
+            "title": "Installed Services",
+            "description": "Services user clicked 'Install' on",
+            "items": {
+              "type": "string",
+              "_comment": "Service IDs from release.services that have no enabled_by condition"
+            },
+            "default": ["openwebui", "litellm"],
+            "uniqueItems": true,
+            "x-category": "Services",
+            "x-display-order": 10
+          },
+          
+          "models": {
+            "type": "array",
+            "title": "Installed Models",
+            "description": "References to files in leger-labs/model-store",
+            "items": {
+              "type": "object",
+              "required": ["source", "id"],
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "enum": ["cloud", "local"],
+                  "description": "Which model-store directory"
+                },
+                "id": {
+                  "type": "string",
+                  "description": "Filename without .json extension",
+                  "examples": ["claude-sonnet-4-5", "qwen3-14b"]
+                }
+              }
+            },
+            "x-category": "Models",
+            "x-display-order": 20
+          },
+          
+          "integrations": {
+            "type": "array",
+            "title": "Installed Integrations",
+            "description": "External services user enabled",
+            "items": {
+              "type": "string",
+              "_comment": "Integration IDs from release.integrations"
+            },
+            "uniqueItems": true,
+            "x-category": "Integrations",
+            "x-display-order": 30
+          }
+        }
+      },
+      
+      "_comment_features": "THE 15 FEATURE TOGGLES - Boolean decisions",
+      "features": {
+        "type": "object",
+        "title": "Feature Toggles",
+        "description": "Enable/disable major capabilities (15 boolean decisions)",
+        
+        "properties": {
+          "rag": {
+            "type": "boolean",
+            "title": "RAG (Retrieval-Augmented Generation)",
+            "default": false,
+            "x-category": "Features",
+            "x-display-order": 100,
+            "x-rationale": "Enable semantic search over documents using vector databases",
+            "x-env-var": "ENABLE_RAG"
+          },
+          
+          "web_search": {
+            "type": "boolean",
+            "title": "Web Search",
+            "default": false,
+            "x-category": "Features",
+            "x-display-order": 101,
+            "x-rationale": "Enable LLM to search the web for current information",
+            "x-env-var": "ENABLE_WEB_SEARCH"
+          },
+          
+          "image_generation": {
+            "type": "boolean",
+            "title": "Image Generation",
+            "default": false,
+            "x-category": "Features",
+            "x-display-order": 102,
+            "x-env-var": "ENABLE_IMAGE_GENERATION"
+          },
+          
+          "speech_to_text": {
+            "type": "boolean",
+            "title": "Speech-to-Text",
+            "default": false,
+            "x-category": "Features",
+            "x-display-order": 103,
+            "x-env-var": "ENABLE_STT"
+          },
+          
+          "text_to_speech": {
+            "type": "boolean",
+            "title": "Text-to-Speech",
+            "default": false,
+            "x-category": "Features",
+            "x-display-order": 104,
+            "x-env-var": "ENABLE_TTS"
+          },
+          
+          "code_execution": {
+            "type": "boolean",
+            "title": "Code Execution",
+            "default": false,
+            "x-category": "Features",
+            "x-display-order": 105,
+            "x-rationale": "Allow LLM to write and execute Python code",
+            "x-env-var": "ENABLE_CODE_EXECUTION"
+          },
+          
+          "code_interpreter": {
+            "type": "boolean",
+            "title": "Code Interpreter",
+            "default": false,
+            "x-category": "Features",
+            "x-display-order": 106,
+            "x-env-var": "ENABLE_CODE_INTERPRETER"
+          },
+          
+          "google_drive": {
+            "type": "boolean",
+            "title": "Google Drive Integration",
+            "default": false,
+            "x-category": "Features",
+            "x-display-order": 107,
+            "x-env-var": "ENABLE_GOOGLE_DRIVE"
+          },
+          
+          "onedrive": {
+            "type": "boolean",
+            "title": "OneDrive Integration",
+            "default": false,
+            "x-category": "Features",
+            "x-display-order": 108,
+            "x-env-var": "ENABLE_ONEDRIVE"
+          },
+          
+          "oauth_signup": {
+            "type": "boolean",
+            "title": "OAuth Signup",
+            "default": false,
+            "x-category": "Security",
+            "x-display-order": 200,
+            "x-env-var": "ENABLE_OAUTH_SIGNUP"
+          },
+          
+          "ldap": {
+            "type": "boolean",
+            "title": "LDAP Authentication",
+            "default": false,
+            "x-category": "Security",
+            "x-display-order": 201,
+            "x-env-var": "ENABLE_LDAP"
+          },
+          
+          "title_generation": {
+            "type": "boolean",
+            "title": "AI Title Generation",
+            "default": true,
+            "x-category": "AI Assistance",
+            "x-display-order": 300,
+            "x-env-var": "ENABLE_TITLE_GENERATION"
+          },
+          
+          "autocomplete_generation": {
+            "type": "boolean",
+            "title": "Autocomplete Generation",
+            "default": true,
+            "x-category": "AI Assistance",
+            "x-display-order": 301,
+            "x-env-var": "ENABLE_AUTOCOMPLETE_GENERATION"
+          },
+          
+          "tags_generation": {
+            "type": "boolean",
+            "title": "Tags Generation",
+            "default": true,
+            "x-category": "AI Assistance",
+            "x-display-order": 302,
+            "x-env-var": "ENABLE_TAGS_GENERATION"
+          },
+          
+          "websocket_support": {
+            "type": "boolean",
+            "title": "WebSocket Support",
+            "default": true,
+            "x-category": "Advanced",
+            "x-display-order": 400,
+            "x-env-var": "ENABLE_WEBSOCKET"
+          }
+        }
+      },
+      
+      "_comment_providers": "THE 13 PROVIDER SELECTIONS - Enum choices",
+      "providers": {
+        "type": "object",
+        "title": "Provider Selections",
+        "description": "Choose implementation for each feature (13 enum decisions)",
+        
+        "properties": {
+          "vector_db": {
+            "type": "string",
+            "title": "Vector Database",
+            "enum": ["pgvector", "qdrant", "chroma"],
+            "default": "pgvector",
+            "x-category": "Providers",
+            "x-display-order": 100,
+            "x-depends-on": {
+              "features.rag": true
+            },
+            "x-affects-services": {
+              "_comment": "Map enum value to service ID (null = no service needed)",
+              "pgvector": null,
+              "qdrant": "qdrant",
+              "chroma": "chroma"
+            },
+            "x-provider-fields": {
+              "_comment": "Additional fields that appear for each provider",
+              "qdrant": ["qdrant_url", "qdrant_api_key"],
+              "chroma": ["chroma_url"],
+              "pgvector": []
+            },
+            "x-env-var": "VECTOR_DB"
+          },
+          
+          "rag_embedding": {
+            "type": "string",
+            "title": "RAG Embedding Model",
+            "enum": ["openai", "ollama"],
+            "default": "openai",
+            "x-category": "Providers",
+            "x-display-order": 101,
+            "x-depends-on": {
+              "features.rag": true
+            },
+            "x-env-var": "RAG_EMBEDDING_ENGINE"
+          },
+          
+          "content_extraction": {
+            "type": "string",
+            "title": "Content Extraction Engine",
+            "enum": ["tika", "docling"],
+            "default": "tika",
+            "x-category": "Providers",
+            "x-display-order": 102,
+            "x-depends-on": {
+              "features.rag": true
+            },
+            "x-affects-services": {
+              "tika": "tika",
+              "docling": null
+            },
+            "x-env-var": "CONTENT_EXTRACTION_ENGINE"
+          },
+          
+          "text_splitter": {
+            "type": "string",
+            "title": "Text Splitter Algorithm",
+            "enum": ["character", "recursive"],
+            "default": "recursive",
+            "x-category": "Providers",
+            "x-display-order": 103,
+            "x-depends-on": {
+              "features.rag": true
+            },
+            "x-env-var": "TEXT_SPLITTER"
+          },
+          
+          "web_search_engine": {
+            "type": "string",
+            "title": "Web Search Engine",
+            "enum": ["searxng", "tavily", "brave"],
+            "default": "searxng",
+            "x-category": "Providers",
+            "x-display-order": 110,
+            "x-depends-on": {
+              "features.web_search": true
+            },
+            "x-affects-services": {
+              "searxng": "searxng",
+              "tavily": null,
+              "brave": null
+            },
+            "x-provider-fields": {
+              "searxng": ["searxng_query_url"],
+              "tavily": ["tavily_api_key"],
+              "brave": ["brave_api_key"]
+            },
+            "x-env-var": "WEB_SEARCH_ENGINE"
+          },
+          
+          "web_loader": {
+            "type": "string",
+            "title": "Web Page Loader",
+            "enum": ["requests", "selenium"],
+            "default": "requests",
+            "x-category": "Providers",
+            "x-display-order": 111,
+            "x-depends-on": {
+              "features.web_search": true
+            },
+            "x-env-var": "WEB_LOADER_ENGINE"
+          },
+          
+          "image_engine": {
+            "type": "string",
+            "title": "Image Generation Engine",
+            "enum": ["openai", "automatic1111", "comfyui"],
+            "default": "openai",
+            "x-category": "Providers",
+            "x-display-order": 120,
+            "x-depends-on": {
+              "features.image_generation": true
+            },
+            "x-affects-services": {
+              "comfyui": "comfyui",
+              "automatic1111": "automatic1111",
+              "openai": null
+            },
+            "x-env-var": "IMAGE_GENERATION_ENGINE"
+          },
+          
+          "stt_engine": {
+            "type": "string",
+            "title": "Speech-to-Text Engine",
+            "enum": ["openai", "whisper"],
+            "default": "openai",
+            "x-category": "Providers",
+            "x-display-order": 130,
+            "x-depends-on": {
+              "features.speech_to_text": true
+            },
+            "x-affects-services": {
+              "whisper": "whisper",
+              "openai": null
+            },
+            "x-env-var": "STT_ENGINE"
+          },
+          
+          "tts_engine": {
+            "type": "string",
+            "title": "Text-to-Speech Engine",
+            "enum": ["openai", "elevenlabs", "edgetts"],
+            "default": "openai",
+            "x-category": "Providers",
+            "x-display-order": 131,
+            "x-depends-on": {
+              "features.text_to_speech": true
+            },
+            "x-affects-services": {
+              "edgetts": "edgetts",
+              "elevenlabs": null,
+              "openai": null
+            },
+            "x-env-var": "TTS_ENGINE"
+          },
+          
+          "code_execution_engine": {
+            "type": "string",
+            "title": "Code Execution Engine",
+            "enum": ["jupyter", "pyodide"],
+            "default": "jupyter",
+            "x-category": "Providers",
+            "x-display-order": 140,
+            "x-depends-on": {
+              "features.code_execution": true
+            },
+            "x-affects-services": {
+              "jupyter": "jupyter",
+              "pyodide": null
+            },
+            "x-env-var": "CODE_EXECUTION_ENGINE"
+          },
+          
+          "code_interpreter_engine": {
+            "type": "string",
+            "title": "Code Interpreter Engine",
+            "enum": ["jupyter", "e2b"],
+            "default": "jupyter",
+            "x-category": "Providers",
+            "x-display-order": 141,
+            "x-depends-on": {
+              "features.code_interpreter": true
+            },
+            "x-affects-services": {
+              "jupyter": "jupyter",
+              "e2b": null
+            },
+            "x-env-var": "CODE_INTERPRETER_ENGINE"
+          },
+          
+          "storage_provider": {
+            "type": "string",
+            "title": "External Storage Provider",
+            "enum": ["", "s3", "gcs"],
+            "default": "",
+            "x-category": "Providers",
+            "x-display-order": 150,
+            "x-env-var": "STORAGE_PROVIDER"
+          },
+          
+          "auth_provider": {
+            "type": "string",
+            "title": "Authentication Provider",
+            "enum": ["local", "oauth", "ldap"],
+            "default": "local",
+            "x-category": "Security",
+            "x-display-order": 200,
+            "x-env-var": "AUTH_BACKEND"
+          }
+        }
+      },
+      
+      "_comment_advanced": "THE 1 ADVANCED OVERRIDES OBJECT - Optional tuning parameters",
+      "advanced": {
+        "type": "object",
+        "title": "Advanced Configuration",
+        "description": "Optional parameters for fine-tuning (only populated if user changes defaults)",
+        "x-category": "Advanced",
+        "x-display-order": 1000,
+        
+        "properties": {
+          "rag_top_k": {
+            "type": "integer",
+            "title": "RAG Top K Results",
+            "default": 5,
+            "minimum": 1,
+            "maximum": 50,
+            "x-depends-on": {
+              "features.rag": true
+            },
+            "x-env-var": "RAG_TOP_K"
+          },
+          
+          "chunk_size": {
+            "type": "integer",
+            "title": "Document Chunk Size",
+            "default": 1500,
+            "minimum": 100,
+            "maximum": 10000,
+            "x-depends-on": {
+              "features.rag": true
+            },
+            "x-env-var": "CHUNK_SIZE"
+          },
+          
+          "chunk_overlap": {
+            "type": "integer",
+            "title": "Chunk Overlap",
+            "default": 100,
+            "minimum": 0,
+            "maximum": 1000,
+            "x-depends-on": {
+              "features.rag": true
+            },
+            "x-env-var": "CHUNK_OVERLAP"
+          },
+          
+          "query_rewrite": {
+            "type": "boolean",
+            "title": "Query Rewriting",
+            "default": true,
+            "x-depends-on": {
+              "features.rag": true
+            },
+            "x-env-var": "RAG_QUERY_REWRITE"
+          },
+          
+          "hybrid_search": {
+            "type": "boolean",
+            "title": "Hybrid Search (Semantic + Keyword)",
+            "default": false,
+            "x-depends-on": {
+              "features.rag": true
+            },
+            "x-env-var": "RAG_HYBRID_SEARCH"
+          }
+        }
+      },
+      
+      "_comment_provider_config": "Provider-specific configuration fields (appear based on x-provider-fields)",
+      "provider_config": {
+        "type": "object",
+        "title": "Provider Configuration",
+        "description": "Configuration fields for selected providers",
+        "x-category": "Providers",
+        "x-display-order": 500,
+        
+        "properties": {
+          "_comment": "These fields appear/disappear based on provider selection",
+          
+          "qdrant_url": {
+            "type": "string",
+            "title": "Qdrant URL",
+            "default": "http://qdrant:6333",
+            "x-depends-on": {
+              "providers.vector_db": "qdrant"
+            },
+            "x-env-var": "QDRANT_URL"
+          },
+          
+          "qdrant_api_key": {
+            "type": "string",
+            "title": "Qdrant API Key",
+            "default": "",
+            "x-depends-on": {
+              "providers.vector_db": "qdrant"
+            },
+            "x-sensitive": true,
+            "x-env-var": "QDRANT_API_KEY"
+          },
+          
+          "searxng_query_url": {
+            "type": "string",
+            "title": "SearXNG Query URL",
+            "default": "http://searxng:8080/search?q=<query>",
+            "x-depends-on": {
+              "providers.web_search_engine": "searxng"
+            },
+            "x-env-var": "SEARXNG_QUERY_URL"
+          },
+          
+          "tavily_api_key": {
+            "type": "string",
+            "title": "Tavily API Key",
+            "x-depends-on": {
+              "providers.web_search_engine": "tavily"
+            },
+            "x-sensitive": true,
+            "x-env-var": "TAVILY_API_KEY"
+          },
+          
+          "brave_api_key": {
+            "type": "string",
+            "title": "Brave Search API Key",
+            "x-depends-on": {
+              "providers.web_search_engine": "brave"
+            },
+            "x-sensitive": true,
+            "x-env-var": "BRAVE_SEARCH_API_KEY"
+          }
+        }
+      },
+      
+      "_comment_service_overrides": "Optional per-service configuration overrides",
+      "service_overrides": {
+        "type": "object",
+        "title": "Service Overrides",
+        "description": "Override default service configurations",
+        "x-category": "Advanced",
+        "x-display-order": 900,
+        
+        "additionalProperties": {
+          "$ref": "#/definitions/ServiceOverride"
+        }
+      }
+    }
+  },
+  
+  "_comment_definitions": "======== REUSABLE SCHEMA DEFINITIONS ========",
+  "definitions": {
+    "ServiceOverride": {
+      "type": "object",
+      "description": "Override infrastructure settings for a specific service",
+      "properties": {
+        "published_port": {
+          "type": ["integer", "null"],
+          "description": "Override the published port for this service"
+        },
+        "bind_address": {
+          "type": "string",
+          "default": "127.0.0.1",
+          "description": "Bind address for published port"
+        },
+        "image_override": {
+          "type": "string",
+          "description": "Use a different image (advanced users only)"
+        },
+        "environment": {
+          "type": "object",
+          "description": "Additional environment variables",
+          "additionalProperties": {
+            "type": ["string", "number", "boolean"]
+          }
+        }
+      }
+    }
+  },
+  
+  "_comment_metadata": "======== METADATA FOR TOOLING ========",
+  "x-metadata": {
+    "_comment": "Metadata used by resolution engine and UI generator",
+    
+    "categories": [
+      {
+        "id": "Infrastructure",
+        "label": "Infrastructure",
+        "description": "Network and core settings",
+        "order": 1
+      },
+      {
+        "id": "Services",
+        "label": "Services",
+        "description": "Install primary services",
+        "order": 10
+      },
+      {
+        "id": "Models",
+        "label": "Models",
+        "description": "Install LLM models",
+        "order": 20
+      },
+      {
+        "id": "Integrations",
+        "label": "Integrations",
+        "description": "External service integrations",
+        "order": 30
+      },
+      {
+        "id": "Features",
+        "label": "Features",
+        "description": "Enable capabilities",
+        "order": 100
+      },
+      {
+        "id": "Providers",
+        "label": "Providers",
+        "description": "Select implementations",
+        "order": 200
+      },
+      {
+        "id": "Security",
+        "label": "Security",
+        "description": "Authentication and access control",
+        "order": 300
+      },
+      {
+        "id": "AI Assistance",
+        "label": "AI Assistance",
+        "description": "AI-powered features",
+        "order": 400
+      },
+      {
+        "id": "Advanced",
+        "label": "Advanced",
+        "description": "Tuning parameters",
+        "order": 900
+      }
+    ],
+    
+    "env_var_generation": {
+      "_comment": "Rules for generating environment variables from user config",
+      "boolean_format": "lowercase_string",
+      "null_handling": "omit",
+      "secret_handling": "reference_only"
+    }
+  }
+}
