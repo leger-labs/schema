@@ -1,0 +1,931 @@
+{
+  "schema_version": "2.0.0",
+  "release": {
+    "version": "v1.0.0-migrated",
+    "released_at": "2025-10-23T10:58:51.312484Z",
+    "template_sha": "migrated",
+    "changelog_url": "",
+    "description": "Migrated from blueprint-config.json on 2025-10-23"
+  },
+  "topology": {
+    "network": {
+      "name": "llm",
+      "subnet": "10.89.0.0/24",
+      "gateway": "10.89.0.1"
+    },
+    "services": {
+      "litellm_postgres": {
+        "infrastructure": {
+          "image": "docker.io/pgvector/pgvector:pg16",
+          "container_name": "litellm-postgres",
+          "port": 5432,
+          "network": "llm.network",
+          "description": "litellm_postgres service",
+          "hostname": "litellm-postgres",
+          "published_port": null,
+          "requires": [],
+          "enabled": true,
+          "volumes": [
+            {
+              "name": "litellm-postgres.volume",
+              "mount_path": "/var/lib/postgresql/data",
+              "selinux_label": "Z"
+            }
+          ],
+          "healthcheck": {
+            "cmd": "pg_isready -U litellm",
+            "interval": "10s",
+            "timeout": "5s",
+            "retries": 5,
+            "start_period": "10s"
+          }
+        },
+        "configuration": {
+          "type": "object",
+          "properties": {
+            "POSTGRES_USER": {
+              "type": "string",
+              "description": "Database user",
+              "default": "litellm",
+              "x-env-var": "POSTGRES_USER",
+              "x-category": "Advanced",
+              "x-visibility": "expert"
+            },
+            "POSTGRES_DB": {
+              "type": "string",
+              "description": "Database name",
+              "default": "litellm",
+              "x-env-var": "POSTGRES_DB",
+              "x-category": "Advanced",
+              "x-visibility": "expert"
+            }
+          }
+        }
+      },
+      "litellm_redis": {
+        "infrastructure": {
+          "image": "docker.io/redis:latest",
+          "container_name": "litellm-redis",
+          "port": 6379,
+          "network": "llm.network",
+          "description": "litellm_redis service",
+          "hostname": "litellm-redis",
+          "published_port": null,
+          "requires": [],
+          "enabled": true,
+          "volumes": [
+            {
+              "name": "litellm-redis.volume",
+              "mount_path": "/data",
+              "selinux_label": "Z"
+            }
+          ],
+          "healthcheck": {
+            "cmd": "redis-cli ping || exit 1",
+            "interval": "10s",
+            "timeout": "5s",
+            "retries": 5,
+            "start_period": "5s"
+          }
+        },
+        "configuration": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      "litellm": {
+        "infrastructure": {
+          "image": "ghcr.io/berriai/litellm:main-stable",
+          "container_name": "litellm",
+          "port": 4000,
+          "network": "llm.network",
+          "description": "LLM Proxy Service",
+          "hostname": "litellm",
+          "published_port": 4000,
+          "requires": [
+            "litellm_postgres",
+            "litellm_redis"
+          ],
+          "enabled": true,
+          "external_subdomain": "llm",
+          "healthcheck": {
+            "cmd": "curl -f http://localhost:4000/health || exit 1",
+            "interval": "30s",
+            "timeout": "5s",
+            "retries": 3,
+            "start_period": "30s"
+          }
+        },
+        "configuration": {
+          "type": "object",
+          "properties": {
+            "LITELLM_MASTER_KEY": {
+              "type": "string",
+              "description": "Master authentication key for LiteLLM proxy",
+              "default": "${LITELLM_MASTER_KEY}",
+              "x-env-var": "LITELLM_MASTER_KEY",
+              "x-category": "Security",
+              "x-display-order": 1,
+              "x-visibility": "exposed",
+              "x-sensitive": true,
+              "x-secret-ref": "secrets.api_keys.litellm_master",
+              "x-template-path": "litellm.master_key"
+            },
+            "DATABASE_URL": {
+              "type": "string",
+              "description": "PostgreSQL connection for LiteLLM state",
+              "default": "postgresql://litellm@litellm-postgres:5432/litellm",
+              "x-env-var": "DATABASE_URL",
+              "x-category": "Advanced",
+              "x-visibility": "expert",
+              "x-template-path": "litellm.database_url",
+              "x-requires-field": "litellm_postgres.infrastructure.container_name"
+            },
+            "REDIS_URL": {
+              "type": "string",
+              "description": "Redis cache for rate limiting and caching",
+              "default": "redis://litellm-redis:6379/0",
+              "x-env-var": "REDIS_URL",
+              "x-category": "Advanced",
+              "x-visibility": "expert",
+              "x-template-path": "litellm.redis_url",
+              "x-requires-field": "litellm_redis.infrastructure.container_name"
+            },
+            "DROP_PARAMS": {
+              "type": "boolean",
+              "description": "Drop unsupported parameters instead of erroring",
+              "default": true,
+              "x-env-var": "DROP_PARAMS",
+              "x-category": "Advanced",
+              "x-display-order": 4,
+              "x-visibility": "advanced",
+              "x-template-path": "litellm.drop_params",
+              "x-rationale": "Improves compatibility with different model providers"
+            }
+          }
+        }
+      },
+      "openwebui_postgres": {
+        "infrastructure": {
+          "image": "docker.io/pgvector/pgvector:pg16",
+          "container_name": "openwebui-postgres",
+          "port": 5432,
+          "network": "llm.network",
+          "description": "openwebui_postgres service",
+          "hostname": "openwebui-postgres",
+          "published_port": null,
+          "requires": [],
+          "enabled": true,
+          "volumes": [
+            {
+              "name": "openwebui-postgres.volume",
+              "mount_path": "/var/lib/postgresql/data",
+              "selinux_label": "Z"
+            }
+          ],
+          "healthcheck": {
+            "cmd": "pg_isready -U openwebui",
+            "interval": "10s",
+            "timeout": "5s",
+            "retries": 5,
+            "start_period": "10s"
+          }
+        },
+        "configuration": {
+          "type": "object",
+          "properties": {
+            "POSTGRES_USER": {
+              "type": "string",
+              "description": "Database user",
+              "default": "openwebui",
+              "x-env-var": "POSTGRES_USER",
+              "x-category": "Advanced",
+              "x-visibility": "expert"
+            },
+            "POSTGRES_DB": {
+              "type": "string",
+              "description": "Database name",
+              "default": "openwebui",
+              "x-env-var": "POSTGRES_DB",
+              "x-category": "Advanced",
+              "x-visibility": "expert"
+            }
+          }
+        }
+      },
+      "openwebui_redis": {
+        "infrastructure": {
+          "image": "docker.io/redis:latest",
+          "container_name": "openwebui-redis",
+          "port": 6379,
+          "network": "llm.network",
+          "description": "openwebui_redis service",
+          "hostname": "openwebui-redis",
+          "published_port": null,
+          "requires": [],
+          "enabled": true,
+          "volumes": [
+            {
+              "name": "openwebui-redis.volume",
+              "mount_path": "/data",
+              "selinux_label": "Z"
+            }
+          ],
+          "healthcheck": {
+            "cmd": "redis-cli ping || exit 1",
+            "interval": "10s",
+            "timeout": "5s",
+            "retries": 5,
+            "start_period": "5s"
+          }
+        },
+        "configuration": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      "openwebui": {
+        "infrastructure": {
+          "image": "ghcr.io/open-webui/open-webui:main",
+          "container_name": "openwebui",
+          "port": 8080,
+          "network": "llm.network",
+          "description": "Open WebUI Chat Interface",
+          "hostname": "openwebui",
+          "published_port": 3000,
+          "requires": [
+            "openwebui_postgres",
+            "openwebui_redis",
+            "litellm"
+          ],
+          "enabled": true,
+          "websocket": true,
+          "external_subdomain": "ai",
+          "volumes": [
+            {
+              "name": "openwebui.volume",
+              "mount_path": "/data",
+              "selinux_label": "Z"
+            }
+          ],
+          "healthcheck": {
+            "cmd": "curl -f http://localhost:8080/health || exit 1",
+            "interval": "30s",
+            "timeout": "5s",
+            "retries": 3,
+            "start_period": "30s"
+          }
+        },
+        "configuration": {
+          "type": "object",
+          "properties": {
+            "WEBUI_NAME": {
+              "type": "string",
+              "description": "Main WebUI display name",
+              "default": "Leger AI",
+              "x-env-var": "WEBUI_NAME",
+              "x-category": "General",
+              "x-display-order": 1,
+              "x-visibility": "exposed",
+              "x-template-path": "openwebui.general.webui_name"
+            },
+            "WEBUI_AUTH": {
+              "type": "boolean",
+              "description": "Enable user authentication",
+              "default": false,
+              "x-env-var": "WEBUI_AUTH",
+              "x-category": "Security",
+              "x-display-order": 1,
+              "x-visibility": "exposed",
+              "x-template-path": "openwebui.general.webui_auth"
+            },
+            "ENABLE_WEB_SEARCH": {
+              "type": "boolean",
+              "description": "Enable web search functionality",
+              "default": true,
+              "x-env-var": "ENABLE_WEB_SEARCH",
+              "x-category": "Features",
+              "x-display-order": 1,
+              "x-visibility": "exposed",
+              "x-template-path": "openwebui.features.web_search",
+              "x-enables-services": [
+                "searxng",
+                "searxng_redis"
+              ],
+              "x-provider-fields": [
+                "WEB_SEARCH_ENGINE"
+              ]
+            },
+            "WEB_SEARCH_ENGINE": {
+              "type": "string",
+              "description": "Web search provider",
+              "enum": [
+                "searxng",
+                "tavily",
+                "brave"
+              ],
+              "default": "searxng",
+              "x-env-var": "WEB_SEARCH_ENGINE",
+              "x-category": "Providers",
+              "x-display-order": 1,
+              "x-visibility": "exposed",
+              "x-depends-on": {
+                "ENABLE_WEB_SEARCH": true
+              },
+              "x-template-path": "openwebui.providers.web_search_engine",
+              "x-affects-services": {
+                "searxng": "searxng",
+                "tavily": null,
+                "brave": null
+              }
+            },
+            "ENABLE_IMAGE_GENERATION": {
+              "type": "boolean",
+              "description": "Enable image generation capability",
+              "default": false,
+              "x-env-var": "ENABLE_IMAGE_GENERATION",
+              "x-category": "Features",
+              "x-display-order": 2,
+              "x-visibility": "exposed",
+              "x-template-path": "openwebui.features.image_generation",
+              "x-enables-services": [
+                "comfyui"
+              ],
+              "x-provider-fields": [
+                "IMAGE_GENERATION_ENGINE"
+              ]
+            },
+            "IMAGE_GENERATION_ENGINE": {
+              "type": "string",
+              "description": "Image generation backend",
+              "enum": [
+                "comfyui",
+                "automatic1111",
+                "openai"
+              ],
+              "default": "openai",
+              "x-env-var": "IMAGE_GENERATION_ENGINE",
+              "x-category": "Providers",
+              "x-display-order": 3,
+              "x-visibility": "exposed",
+              "x-depends-on": {
+                "ENABLE_IMAGE_GENERATION": true
+              },
+              "x-template-path": "openwebui.providers.image_engine",
+              "x-affects-services": {
+                "comfyui": "comfyui",
+                "automatic1111": null,
+                "openai": null
+              }
+            },
+            "VECTOR_DB": {
+              "type": "string",
+              "description": "Vector database for RAG embeddings",
+              "enum": [
+                "pgvector",
+                "qdrant",
+                "chromadb",
+                "milvus"
+              ],
+              "default": "pgvector",
+              "x-env-var": "VECTOR_DB",
+              "x-category": "Providers",
+              "x-display-order": 4,
+              "x-visibility": "exposed",
+              "x-template-path": "openwebui.providers.vector_db",
+              "x-affects-services": {
+                "pgvector": null,
+                "qdrant": "qdrant",
+                "chromadb": null,
+                "milvus": null
+              }
+            },
+            "DATABASE_URL": {
+              "type": "string",
+              "description": "PostgreSQL database connection string",
+              "default": "postgresql://openwebui@openwebui-postgres:5432/openwebui",
+              "x-env-var": "DATABASE_URL",
+              "x-category": "Advanced",
+              "x-display-order": 1,
+              "x-visibility": "expert",
+              "x-template-path": "openwebui.general.database_url",
+              "x-requires-field": "openwebui_postgres.infrastructure.container_name"
+            },
+            "OPENAI_API_BASE_URL": {
+              "type": "string",
+              "description": "LiteLLM proxy endpoint",
+              "default": "http://litellm:4000/v1",
+              "x-env-var": "OPENAI_API_BASE_URL",
+              "x-category": "Advanced",
+              "x-display-order": 3,
+              "x-visibility": "expert",
+              "x-template-path": "openwebui.general.openai_api_base_url",
+              "x-requires-field": "litellm.infrastructure.container_name"
+            },
+            "OPENAI_API_KEY": {
+              "type": "string",
+              "description": "LiteLLM authentication key",
+              "default": "sk-litellm-local",
+              "x-env-var": "OPENAI_API_KEY",
+              "x-category": "Security",
+              "x-display-order": 2,
+              "x-visibility": "hidden",
+              "x-sensitive": true,
+              "x-secret-ref": "secrets.api_keys.litellm_master",
+              "x-template-path": "openwebui.general.openai_api_key",
+              "x-requires-field": "litellm.configuration.LITELLM_MASTER_KEY"
+            }
+          }
+        }
+      },
+      "searxng_redis": {
+        "infrastructure": {
+          "image": "docker.io/redis:latest",
+          "container_name": "searxng-redis",
+          "port": 6379,
+          "network": "llm.network",
+          "description": "searxng_redis service",
+          "hostname": "searxng-redis",
+          "published_port": null,
+          "requires": [],
+          "enabled": false,
+          "enabled_by": [
+            "openwebui.providers.web_search_engine == 'searxng'"
+          ],
+          "volumes": [
+            {
+              "name": "searxng-redis.volume",
+              "mount_path": "/data",
+              "selinux_label": "Z"
+            }
+          ],
+          "healthcheck": {
+            "cmd": "redis-cli ping || exit 1",
+            "interval": "10s",
+            "timeout": "5s",
+            "retries": 5,
+            "start_period": "5s"
+          }
+        },
+        "configuration": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      "searxng": {
+        "infrastructure": {
+          "image": "docker.io/searxng/searxng:latest",
+          "container_name": "searxng",
+          "port": 8080,
+          "network": "llm.network",
+          "description": "SearXNG Meta Search Engine",
+          "hostname": "searxng",
+          "published_port": 8888,
+          "requires": [
+            "searxng_redis"
+          ],
+          "enabled": false,
+          "enabled_by": [
+            "openwebui.providers.web_search_engine == 'searxng'"
+          ],
+          "external_subdomain": "search",
+          "volumes": [
+            {
+              "name": "searxng.volume",
+              "mount_path": "/etc/searxng",
+              "selinux_label": "Z"
+            }
+          ],
+          "healthcheck": {
+            "cmd": "curl -f http://localhost:8080/healthz || exit 1",
+            "interval": "30s",
+            "timeout": "5s",
+            "retries": 3,
+            "start_period": "10s"
+          }
+        },
+        "configuration": {
+          "type": "object",
+          "properties": {
+            "SEARXNG_BASE_URL": {
+              "type": "string",
+              "description": "External base URL for SearXNG",
+              "default": "https://search.blueprint.tail8dd1.ts.net",
+              "x-env-var": "SEARXNG_BASE_URL",
+              "x-category": "General",
+              "x-visibility": "exposed",
+              "x-template-path": "searxng.base_url"
+            },
+            "SEARXNG_REDIS_URL": {
+              "type": "string",
+              "description": "Redis connection for rate limiting",
+              "default": "redis://searxng-redis:6379/0",
+              "x-env-var": "SEARXNG_REDIS_URL",
+              "x-category": "Advanced",
+              "x-visibility": "expert",
+              "x-template-path": "searxng.redis_url",
+              "x-requires-field": "searxng_redis.infrastructure.container_name"
+            }
+          }
+        }
+      },
+      "tika": {
+        "infrastructure": {
+          "image": "docker.io/apache/tika:latest-full",
+          "container_name": "tika",
+          "port": 9998,
+          "network": "llm.network",
+          "description": "Apache Tika Content Extraction",
+          "hostname": "tika",
+          "published_port": null,
+          "requires": [],
+          "enabled": false,
+          "enabled_by": [
+            "openwebui.providers.content_extraction == 'tika'"
+          ],
+          "healthcheck": {
+            "cmd": "curl -f http://localhost:9998/ || exit 1",
+            "interval": "30s",
+            "timeout": "5s",
+            "retries": 3,
+            "start_period": "10s"
+          }
+        },
+        "configuration": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      "whisper": {
+        "infrastructure": {
+          "image": "docker.io/fedirz/faster-whisper-server:latest-cpu",
+          "container_name": "whisper",
+          "port": 8000,
+          "network": "llm.network",
+          "description": "Whisper Speech-to-Text Service",
+          "hostname": "whisper",
+          "published_port": 8765,
+          "bind": "127.0.0.1",
+          "requires": [],
+          "enabled": false,
+          "enabled_by": [
+            "openwebui.features.speech_to_text"
+          ],
+          "external_subdomain": "whisper",
+          "volumes": [
+            {
+              "name": "whisper-cache.volume",
+              "mount_path": "/data",
+              "selinux_label": "Z"
+            }
+          ],
+          "healthcheck": {
+            "cmd": "curl -f http://localhost:8000/ || exit 1",
+            "interval": "30s",
+            "timeout": "5s",
+            "retries": 3,
+            "start_period": "10s"
+          }
+        },
+        "configuration": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      "edgetts": {
+        "infrastructure": {
+          "image": "ghcr.io/traefik/parakeet:latest",
+          "container_name": "edgetts",
+          "port": 5050,
+          "network": "llm.network",
+          "description": "Edge-TTS Text-to-Speech Service",
+          "hostname": "edgetts",
+          "published_port": 5050,
+          "bind": "127.0.0.1",
+          "requires": [],
+          "enabled": false,
+          "enabled_by": [
+            "openwebui.features.text_to_speech"
+          ],
+          "external_subdomain": "tts",
+          "volumes": [
+            {
+              "name": "edgetts-cache.volume",
+              "mount_path": "/data",
+              "selinux_label": "Z"
+            }
+          ],
+          "healthcheck": {
+            "cmd": "curl -f http://localhost:5050/ || exit 1",
+            "interval": "30s",
+            "timeout": "5s",
+            "retries": 3,
+            "start_period": "10s"
+          }
+        },
+        "configuration": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      "jupyter": {
+        "infrastructure": {
+          "image": "localhost/blueprint-jupyter:latest",
+          "container_name": "jupyter",
+          "port": 8888,
+          "network": "llm.network",
+          "description": "Blueprint Jupyter Lab - AI Code Interpreter",
+          "hostname": "jupyter",
+          "published_port": 8889,
+          "bind": "127.0.0.1",
+          "requires": [
+            "litellm"
+          ],
+          "enabled": false,
+          "enabled_by": [
+            "openwebui.features.code_execution"
+          ],
+          "websocket": true,
+          "external_subdomain": "jupyter",
+          "volumes": [
+            {
+              "name": "jupyter.volume",
+              "mount_path": "/home/jovyan",
+              "selinux_label": "Z"
+            }
+          ],
+          "healthcheck": {
+            "cmd": "curl -f http://localhost:8888/ || exit 1",
+            "interval": "30s",
+            "timeout": "5s",
+            "retries": 3,
+            "start_period": "10s"
+          }
+        },
+        "configuration": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      "llama_swap": {
+        "infrastructure": {
+          "image": "ghcr.io/mostlygeek/llama-swap:cpu",
+          "container_name": "llama-swap",
+          "port": 8080,
+          "network": "llm.network",
+          "description": "Local LLM Model Router",
+          "hostname": "llama-swap",
+          "published_port": 9292,
+          "bind": "127.0.0.1",
+          "requires": [],
+          "enabled": true,
+          "websocket": true,
+          "external_subdomain": "llama-swap",
+          "volumes": [
+            {
+              "name": "llama-swap.volume",
+              "mount_path": "/data",
+              "selinux_label": "Z"
+            }
+          ],
+          "healthcheck": {
+            "cmd": "curl -f http://localhost:8080/ || exit 1",
+            "interval": "30s",
+            "timeout": "5s",
+            "retries": 3,
+            "start_period": "10s"
+          }
+        },
+        "configuration": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      "qdrant": {
+        "infrastructure": {
+          "image": "docker.io/qdrant/qdrant:latest",
+          "container_name": "qdrant",
+          "port": 6333,
+          "network": "llm.network",
+          "description": "Qdrant Vector Database",
+          "hostname": "qdrant",
+          "published_port": 6333,
+          "requires": [],
+          "enabled": false,
+          "enabled_by": [
+            "openwebui.providers.vector_db == 'qdrant'"
+          ],
+          "external_subdomain": "qdrant",
+          "volumes": [
+            {
+              "name": "qdrant.volume",
+              "mount_path": "/qdrant/storage",
+              "selinux_label": "Z"
+            }
+          ],
+          "healthcheck": {
+            "cmd": "curl -f http://localhost:6333/health || exit 1",
+            "interval": "30s",
+            "timeout": "5s",
+            "retries": 3,
+            "start_period": "10s"
+          }
+        },
+        "configuration": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      "cockpit": {
+        "infrastructure": {
+          "image": "quay.io/cockpit/ws:latest",
+          "container_name": "cockpit-ws",
+          "port": 9090,
+          "network": "llm.network",
+          "description": "System Management Dashboard",
+          "hostname": "blueprint",
+          "published_port": 9090,
+          "bind": "127.0.0.1",
+          "requires": [],
+          "enabled": true,
+          "websocket": true,
+          "healthcheck": {
+            "cmd": "curl -f http://localhost:9090/ || exit 1",
+            "interval": "30s",
+            "timeout": "5s",
+            "retries": 3,
+            "start_period": "10s"
+          }
+        },
+        "configuration": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      "mcp_context_forge_postgres": {
+        "infrastructure": {
+          "image": "docker.io/postgres:17",
+          "container_name": "mcp-context-forge-postgres",
+          "port": 5432,
+          "network": "llm.network",
+          "description": "mcp_context_forge_postgres service",
+          "hostname": "mcp-context-forge-postgres",
+          "published_port": null,
+          "requires": [],
+          "enabled": true,
+          "volumes": [
+            {
+              "name": "mcp-context-forge-postgres.volume",
+              "mount_path": "/var/lib/postgresql/data",
+              "selinux_label": "Z"
+            }
+          ],
+          "healthcheck": {
+            "cmd": "pg_isready -U mcp",
+            "interval": "10s",
+            "timeout": "5s",
+            "retries": 5,
+            "start_period": "10s"
+          }
+        },
+        "configuration": {
+          "type": "object",
+          "properties": {
+            "POSTGRES_USER": {
+              "type": "string",
+              "description": "Database user",
+              "default": "mcp",
+              "x-env-var": "POSTGRES_USER",
+              "x-category": "Advanced",
+              "x-visibility": "expert"
+            },
+            "POSTGRES_DB": {
+              "type": "string",
+              "description": "Database name",
+              "default": "mcp",
+              "x-env-var": "POSTGRES_DB",
+              "x-category": "Advanced",
+              "x-visibility": "expert"
+            }
+          }
+        }
+      },
+      "mcp_context_forge": {
+        "infrastructure": {
+          "image": "ghcr.io/ibm/mcp-context-forge:0.8.0",
+          "container_name": "mcp-context-forge",
+          "port": 4444,
+          "network": "llm.network",
+          "description": "MCP Context Forge - Enterprise Model Context Protocol Gateway",
+          "hostname": "mcp-context-forge",
+          "published_port": 4444,
+          "bind": "127.0.0.1",
+          "requires": [
+            "mcp_context_forge_postgres"
+          ],
+          "enabled": true,
+          "websocket": true,
+          "external_subdomain": "mcp",
+          "healthcheck": {
+            "cmd": "curl -f http://localhost:4444/ || exit 1",
+            "interval": "30s",
+            "timeout": "5s",
+            "retries": 3,
+            "start_period": "10s"
+          }
+        },
+        "configuration": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      "comfyui": {
+        "infrastructure": {
+          "image": "ghcr.io/ai-dock/comfyui:latest",
+          "container_name": "comfyui",
+          "port": 8188,
+          "network": "llm.network",
+          "description": "ComfyUI - Stable Diffusion Workflow Engine",
+          "hostname": "comfyui",
+          "published_port": 8188,
+          "bind": "127.0.0.1",
+          "requires": [],
+          "enabled": false,
+          "enabled_by": [
+            "openwebui.features.image_generation"
+          ],
+          "websocket": true,
+          "external_subdomain": "comfy",
+          "volumes": [
+            {
+              "name": "comfyui.volume",
+              "mount_path": "/workspace",
+              "selinux_label": "Z"
+            },
+            {
+              "name": "comfyui-models.volume",
+              "mount_path": "/workspace/models",
+              "selinux_label": "Z"
+            }
+          ],
+          "healthcheck": {
+            "cmd": "curl -f http://localhost:8188/ || exit 1",
+            "interval": "30s",
+            "timeout": "5s",
+            "retries": 3,
+            "start_period": "10s"
+          }
+        },
+        "configuration": {
+          "type": "object",
+          "properties": {
+            "WEB_ENABLE_AUTH": {
+              "type": "boolean",
+              "description": "Enable web authentication for ComfyUI",
+              "default": false,
+              "x-env-var": "WEB_ENABLE_AUTH",
+              "x-category": "Security",
+              "x-visibility": "exposed",
+              "x-template-path": "comfyui.web_enable_auth"
+            },
+            "AUTO_UPDATE": {
+              "type": "boolean",
+              "description": "Auto-update ComfyUI on container start",
+              "default": false,
+              "x-env-var": "AUTO_UPDATE",
+              "x-category": "Advanced",
+              "x-visibility": "advanced",
+              "x-template-path": "comfyui.auto_update"
+            }
+          }
+        }
+      }
+    }
+  },
+  "secrets": {
+    "api_keys": {
+      "litellm_master": "sk-litellm-local",
+      "openwebui_secret": "sk-openwebui-local",
+      "jupyter_token": "sk-jupyter-local"
+    },
+    "llm_providers": {
+      "openai": "${OPENAI_API_KEY}",
+      "anthropic": "${ANTHROPIC_API_KEY}",
+      "gemini": "${GEMINI_API_KEY}",
+      "groq": "${GROQ_API_KEY}",
+      "openrouter": "${OPENROUTER_API_KEY}"
+    },
+    "search_providers": {
+      "tavily": "${TAVILY_API_KEY}"
+    },
+    "audio_providers": {
+      "elevenlabs": "${ELEVENLABS_API_KEY}",
+      "deepgram": "${DEEPGRAM_API_KEY}"
+    },
+    "mcp_context_forge": {
+      "jwt_secret_key": "${MCP_JWT_SECRET_KEY}",
+      "admin_password": "${MCP_ADMIN_PASSWORD}",
+      "auth_encryption_secret": "${MCP_AUTH_ENCRYPTION_SECRET}"
+    }
+  }
+}

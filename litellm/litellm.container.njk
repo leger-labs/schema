@@ -1,0 +1,106 @@
+{% extends "../base-container.njk" %}
+{% set catalog = (readFile('../release-catalog.json') | fromJson) -%}
+{% set service_def = catalog.services.litellm -%}
+
+{# ═════════════════════════════════════════════════════════════════════════ #}
+{# {{ service_def.name }} v{{ service_def.version }}                          #}
+{# Release: {{ catalog.release.version }}                                     #}
+{# {{ service_def.notes }}                                                    #}
+{# ═════════════════════════════════════════════════════════════════════════ #}
+
+{# Pass service config to base template #}
+{% set service = infrastructure.services.litellm %}
+{% set description = service.description %}
+{% set image = service_def.image %}
+{% set container_name = service.container_name %}
+{% set port = service.port %}
+{% set published_port = service.published_port %}
+{% set bind = service.bind %}
+
+{# Add service-specific dependencies #}
+{% block dependencies %}
+{% for dep in service.requires %}
+After={{ infrastructure.services[dep].container_name }}.service
+{% endfor %}
+{% endblock %}
+
+{% block wants_dependencies %}
+{% for dep in service.requires %}
+Wants={{ infrastructure.services[dep].container_name }}.service
+{% endfor %}
+{% endblock %}
+
+{# Add LiteLLM-specific volumes #}
+{% block volumes %}
+Volume=%h/.config/containers/systemd/litellm/litellm.yaml:/app/config.yaml:ro,Z
+{% endblock %}
+
+{# Add LiteLLM environment variables #}
+{% block environment %}
+# LiteLLM Master Key
+Environment=LITELLM_MASTER_KEY={{ secrets.api_keys.litellm_master }}
+
+# Database connection
+Environment=DATABASE_URL={{ litellm.database_url }}
+
+# Redis connection
+Environment=REDIS_HOST={{ infrastructure.services.litellm_redis.hostname }}
+Environment=REDIS_PORT={{ infrastructure.services.litellm_redis.port }}
+
+# Settings
+Environment=STORE_MODEL_IN_DB=true
+Environment=USE_AIOHTTP_TRANSPORT=true
+
+# API Keys
+Environment=OPENAI_API_KEY={{ secrets.llm_providers.openai }}
+Environment=ANTHROPIC_API_KEY={{ secrets.llm_providers.anthropic }}
+Environment=GEMINI_API_KEY={{ secrets.llm_providers.gemini }}
+{% endblock %}
+
+{# Override default health check with LiteLLM-specific endpoint #}
+{% block health_check %}
+HealthCmd=curl -f http://localhost:{{ port }}/health/readiness || exit 1
+HealthInterval=30s
+HealthTimeout=10s
+HealthRetries=3
+HealthStartPeriod=30s
+{% endblock %}
+
+{# Add LiteLLM-specific execution parameters #}
+{% block service_exec %}
+# Add execution command
+ExecStart=/usr/bin/podman start {{ container_name }}
+ExecStartPre=-/usr/bin/podman stop {{ container_name }}
+ExecStartPre=-/usr/bin/podman rm {{ container_name }}
+
+# Log startup info
+ExecStartPost=/usr/bin/echo "LiteLLM: Started successfully at http://{{ service.hostname }}:{{ service.port }}"
+{% endblock %}
+
+{# Add architecture notes specific to LiteLLM #}
+{% block architecture_notes %}
+# ═════════════════════════════════════════════════════════════════════════════
+# 📝 ARCHITECTURE NOTES - LiteLLM
+# ═════════════════════════════════════════════════════════════════════════════
+#
+# DEPENDENCIES:
+#   - litellm_postgres (database for model configs)
+#   - litellm_redis (caching and rate limiting)
+#
+# CONFIGURATION:
+#   - Models defined in litellm.yaml (mounted as volume)
+#   - Database auto-migrates on startup
+#   - Supports both cloud and local models via llama-swap
+#
+# INTEGRATION:
+#   - OpenWebUI uses this as primary LLM backend
+#   - Jupyter uses this for notebook-intelligence
+#   - All task models (title gen, tags gen) route through here
+#
+# MONITORING:
+#   - Health endpoint: /health/readiness
+#   - Metrics endpoint: /metrics (if enabled)
+#   - Dashboard: https://llm.{{ tailscale.full_hostname }} (via Caddy)
+#
+# ═════════════════════════════════════════════════════════════════════════════
+{% endblock %}

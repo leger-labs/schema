@@ -1,0 +1,147 @@
+{% set catalog = (readFile('../release-catalog.json') | fromJson) -%}
+{% set service_def = catalog.services.caddy -%}
+# ═════════════════════════════════════════════════════════════════════════════
+# 🌉 {{ service_def.name }} v{{ service_def.version }}
+# Release: {{ catalog.release.version }}
+# {{ service_def.notes }}
+# ═════════════════════════════════════════════════════════════════════════════
+
+[Unit]
+Description=Caddy Reverse Proxy for LLM Services
+Documentation=https://caddyserver.com/docs/
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🔗 DEPENDENCIES - Auto-generated from blueprint-config.json
+# ═════════════════════════════════════════════════════════════════════════════
+
+# Core infrastructure (required)
+After=network-online.target {{ infrastructure.network.name }}.network.service
+Requires={{ infrastructure.network.name }}.network.service
+
+# Tailscale (optional - Caddy can start without it for local testing)
+After=tailscaled.service
+Wants=tailscaled.service
+
+# Backend services with web interfaces (optional - auto-generated)
+{% for name, service in infrastructure.services %}
+{%- if service.enabled and service.external_subdomain %}
+After={{ service.container_name }}.service
+Wants={{ service.container_name }}.service
+{% endif -%}
+{% endfor %}
+
+[Container]
+Image={{ service_def.image }}
+AutoUpdate=registry
+ContainerName=caddy
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🌐 NETWORK - Connect to llm.network for backend access
+# ═════════════════════════════════════════════════════════════════════════════
+Network={{ infrastructure.network.name }}.network
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 📍 PUBLISHED PORTS - Expose HTTP/HTTPS for Tailscale
+# ═════════════════════════════════════════════════════════════════════════════
+
+# HTTP (port 80) - redirects to HTTPS
+PublishPort=80:80
+
+# HTTPS (port 443) - main traffic
+PublishPort=443:443
+
+# HTTP/3 over QUIC (UDP port 443) - modern protocol
+PublishPort=443:443/udp
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 💾 VOLUMES
+# ═════════════════════════════════════════════════════════════════════════════
+
+# Main Caddyfile
+Volume=%h/.config/caddy/Caddyfile:/etc/caddy/Caddyfile:ro,Z
+
+# Service-specific configs (*.caddy files)
+Volume=%h/.config/caddy:/etc/caddy/conf.d:ro,Z
+
+# Persistent config storage (Caddy's internal state)
+Volume=caddy-config.volume:/config:Z
+
+# Certificate storage (though Tailscale handles TLS)
+Volume=caddy-data.volume:/data:Z
+
+# Log directory (shared with host for easy access)
+Volume=%h/.local/share/caddy/logs:/var/log/caddy:Z
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🌍 ENVIRONMENT
+# ═════════════════════════════════════════════════════════════════════════════
+
+# Config file location
+Environment=CADDY_CONFIG_FILE=/etc/caddy/Caddyfile
+
+# Disable admin API (security)
+Environment=CADDY_ADMIN=off
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🔧 HEALTH CHECK
+# ═════════════════════════════════════════════════════════════════════════════
+
+HealthCmd=wget --no-verbose --tries=1 --spider --timeout=2 http://localhost:80 || exit 1
+HealthInterval=15s
+HealthTimeout=5s
+HealthRetries=5
+HealthStartPeriod=30s
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🚀 SERVICE
+# ═════════════════════════════════════════════════════════════════════════════
+[Service]
+Slice=llm.slice
+TimeoutStartSec=60
+Restart=always
+RestartSec=10
+
+# Create log directory if it doesn't exist
+ExecStartPre=/usr/bin/mkdir -p %h/.local/share/caddy/logs
+
+# Validate config BEFORE starting
+ExecStartPre=-/usr/bin/sh -c '\
+  echo "Caddy: Validating configuration..."; \
+  if ! podman run --rm \
+    -v %h/.config/caddy/Caddyfile:/etc/caddy/Caddyfile:ro \
+    -v %h/.config/caddy:/etc/caddy/conf.d:ro \
+    docker.io/caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile; then \
+    echo "Caddy: ❌ Configuration validation failed!"; \
+    exit 1; \
+  else \
+    echo "Caddy: ✅ Configuration valid"; \
+  fi'
+
+# Log startup info
+ExecStartPost=/usr/bin/sh -c '\
+  echo "Caddy: Started successfully"; \
+  echo "Caddy: Serving routes for:"; \
+  {% for name, service in infrastructure.services -%}
+  {%- if service.enabled and service.external_subdomain -%}
+  echo "  - {{ service.external_subdomain }}.{{ tailscale.full_hostname }} → {{ service.container_name }}:{{ service.port }}"; \
+  {% endif -%}
+  {% endfor -%}
+'
+
+# Graceful reload on config changes
+ExecReload=-/usr/bin/sh -c '\
+  echo "Caddy: Validating new configuration..."; \
+  if ! podman run --rm \
+    -v %h/.config/caddy/Caddyfile:/etc/caddy/Caddyfile:ro \
+    -v %h/.config/caddy:/etc/caddy/conf.d:ro \
+    docker.io/caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile; then \
+    echo "Caddy: ❌ New configuration is invalid! Keeping current config."; \
+    exit 1; \
+  else \
+    echo "Caddy: ✅ New configuration valid, reloading..."; \
+    podman exec caddy caddy reload --config /etc/caddy/Caddyfile; \
+    echo "Caddy: ✅ Reloaded successfully (zero-downtime)"; \
+  fi'
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,96 @@
+{# ═════════════════════════════════════════════════════════════════════════ #}
+{# BASE CONTAINER TEMPLATE - Template Inheritance Pattern                    #}
+{# All quadlet containers extend this base for consistency                   #}
+{# ═════════════════════════════════════════════════════════════════════════ #}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# {% block service_header %}{{ description }}{% endblock %}
+# Generated from blueprint-config.json
+# ═════════════════════════════════════════════════════════════════════════════
+
+[Unit]
+Description={{ description }}
+After=network-online.target {{ infrastructure.network.name }}.network.service
+
+{# Allow child templates to add dependencies #}
+{% block dependencies %}
+{# Override in child templates #}
+{% endblock %}
+
+Requires={{ infrastructure.network.name }}.network.service
+
+{# Wants for optional dependencies #}
+{% block wants_dependencies %}
+{% endblock %}
+
+[Container]
+Image={{ image }}
+AutoUpdate=registry
+ContainerName={{ container_name }}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🌐 NETWORK
+# ═════════════════════════════════════════════════════════════════════════════
+Network={{ infrastructure.network.name }}.network
+
+{% block network_config %}
+{# Override for additional network settings #}
+{% endblock %}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 📍 PUBLISHED PORT
+# ═════════════════════════════════════════════════════════════════════════════
+{% if published_port %}
+PublishPort={{ bind | default("127.0.0.1") }}:{{ published_port }}:{{ port }}
+{% endif %}
+
+{% block additional_ports %}
+{# Override for additional port mappings #}
+{% endblock %}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 💾 VOLUMES
+# ═════════════════════════════════════════════════════════════════════════════
+{% block volumes %}
+{# Override in child templates to add volumes #}
+{% endblock %}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🌍 ENVIRONMENT
+# ═════════════════════════════════════════════════════════════════════════════
+{% block environment %}
+{# Override in child templates to add environment variables #}
+{% endblock %}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🔧 HEALTH CHECK
+# ═════════════════════════════════════════════════════════════════════════════
+{% block health_check %}
+HealthCmd=curl -f http://localhost:{{ port }}/health || exit 1
+HealthInterval=30s
+HealthTimeout=5s
+HealthRetries=3
+HealthStartPeriod=30s
+{% endblock %}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🚀 SERVICE
+# ═════════════════════════════════════════════════════════════════════════════
+[Service]
+Slice=llm.slice
+TimeoutStartSec={{ timeout_start_sec | default(300) }}
+Restart={{ restart | default("on-failure") }}
+RestartSec={{ restart_sec | default(10) }}
+
+{% block service_exec %}
+{# Override for ExecStartPre, ExecStartPost, etc. #}
+{% endblock %}
+
+[Install]
+{% block install %}
+# No WantedBy - dependencies via After/Requires
+{% endblock %}
+
+{% block architecture_notes %}
+{# Override to add service-specific notes #}
+{% endblock %}

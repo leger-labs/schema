@@ -1,0 +1,327 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/leger-labs/quadlet-setup/schemas/validation-rules.json",
+  "title": "Topology Validation Rules",
+  "description": "Extended validation rules for multi-service topologies with cross-service dependencies",
+  "version": "2.0.0",
+
+  "validation_levels": {
+    "field_level": {
+      "description": "Individual field validation (type, pattern, enum, range)",
+      "rules": [
+        {
+          "rule_id": "type_validation",
+          "description": "All fields must match their declared type",
+          "scope": "configuration.properties.*",
+          "validation": "JSON Schema standard type checking"
+        },
+        {
+          "rule_id": "enum_validation",
+          "description": "Enum fields must use one of the allowed values",
+          "scope": "configuration.properties.*.enum",
+          "validation": "Value must be in enum array"
+        },
+        {
+          "rule_id": "pattern_validation",
+          "description": "String fields with patterns must match regex",
+          "scope": "configuration.properties.*.pattern",
+          "validation": "Regex pattern matching"
+        },
+        {
+          "rule_id": "range_validation",
+          "description": "Numeric fields must respect min/max constraints",
+          "scope": "configuration.properties.*.minimum|maximum",
+          "validation": "Value >= minimum AND value <= maximum"
+        },
+        {
+          "rule_id": "sensitive_handling",
+          "description": "Sensitive fields should be encrypted in storage",
+          "scope": "configuration.properties.*.x-sensitive == true",
+          "validation": "Value should reference secret storage or be encrypted",
+          "severity": "warning"
+        }
+      ]
+    },
+
+    "service_level": {
+      "description": "Individual service validation (required fields, dependencies, resource conflicts)",
+      "rules": [
+        {
+          "rule_id": "required_fields",
+          "description": "All required configuration fields must be present",
+          "scope": "service.configuration.required",
+          "validation": "All fields in 'required' array must have values"
+        },
+        {
+          "rule_id": "dependency_exists",
+          "description": "All service dependencies must exist in topology",
+          "scope": "service.infrastructure.requires",
+          "validation": "Each service in 'requires' must exist in topology.services",
+          "error_message": "Service '{service}' requires '{dependency}' which does not exist in topology"
+        },
+        {
+          "rule_id": "port_uniqueness",
+          "description": "Published ports must be unique across all services",
+          "scope": "service.infrastructure.published_port",
+          "validation": "No two services can have the same non-null published_port",
+          "error_message": "Port {port} is published by multiple services: {service1}, {service2}"
+        },
+        {
+          "rule_id": "container_name_uniqueness",
+          "description": "Container names must be unique",
+          "scope": "service.infrastructure.container_name",
+          "validation": "All container names must be unique",
+          "error_message": "Container name '{name}' is used by multiple services"
+        },
+        {
+          "rule_id": "healthcheck_required",
+          "description": "All enabled services should have health checks",
+          "scope": "service.infrastructure.healthcheck",
+          "validation": "If service.infrastructure.enabled == true OR enabled_by is non-empty, healthcheck should be defined",
+          "severity": "warning"
+        },
+        {
+          "rule_id": "volume_reference",
+          "description": "Volume names should follow naming convention",
+          "scope": "service.infrastructure.volumes.*.name",
+          "validation": "Volume name should be '{service_name}.volume' or '{service_name}-{purpose}.volume'",
+          "severity": "warning"
+        }
+      ]
+    },
+
+    "topology_level": {
+      "description": "Cross-service validation (dependency cycles, enablement consistency, field references)",
+      "rules": [
+        {
+          "rule_id": "no_circular_dependencies",
+          "description": "Service dependency graph must be acyclic",
+          "scope": "topology.services.*.infrastructure.requires",
+          "validation": "Topological sort must succeed on dependency graph",
+          "algorithm": "DFS cycle detection",
+          "error_message": "Circular dependency detected: {cycle_path}"
+        },
+        {
+          "rule_id": "conditional_enablement_valid",
+          "description": "Conditional enablement expressions must reference valid fields",
+          "scope": "service.infrastructure.enabled_by",
+          "validation": "Each expression must reference a valid service.configuration.property path",
+          "error_message": "Enablement condition '{expression}' references non-existent field '{field_path}'"
+        },
+        {
+          "rule_id": "provider_field_consistency",
+          "description": "Provider fields must exist when provider is selected",
+          "scope": "configuration.properties.*.x-provider-fields",
+          "validation": "When provider field changes, required provider-specific fields should be validated",
+          "algorithm": [
+            "1. Find field with x-provider-fields",
+            "2. Get current value (selected provider)",
+            "3. Get required fields for that provider from x-provider-fields",
+            "4. Validate those fields exist and are populated"
+          ]
+        },
+        {
+          "rule_id": "depends_on_consistency",
+          "description": "Fields with x-depends-on should only be required when dependency is met",
+          "scope": "configuration.properties.*.x-depends-on",
+          "validation": "If dependency condition is false, field should not be required",
+          "algorithm": [
+            "1. Evaluate x-depends-on condition",
+            "2. If false, field should be optional (not in 'required' array)",
+            "3. If true, field validation proceeds normally"
+          ]
+        },
+        {
+          "rule_id": "cross_service_field_reference",
+          "description": "x-requires-field references must point to existing fields",
+          "scope": "configuration.properties.*.x-requires-field",
+          "validation": "Referenced field path must exist in topology",
+          "algorithm": [
+            "1. Parse field path (e.g., 'litellm.configuration.LITELLM_MASTER_KEY')",
+            "2. Verify service exists",
+            "3. Verify field exists in service configuration",
+            "4. Optionally verify referenced field has a value"
+          ],
+          "error_message": "Field '{field}' requires '{referenced_field}' which does not exist"
+        },
+        {
+          "rule_id": "affects_services_consistency",
+          "description": "Services referenced in x-affects-services must exist",
+          "scope": "configuration.properties.*.x-affects-services",
+          "validation": "All non-null service references must exist in topology.services",
+          "error_message": "Field '{field}' affects service '{service}' which does not exist in topology"
+        },
+        {
+          "rule_id": "enables_services_consistency",
+          "description": "Services referenced in x-enables-services must exist",
+          "scope": "configuration.properties.*.x-enables-services",
+          "validation": "All services in x-enables-services must exist in topology.services",
+          "error_message": "Field '{field}' enables service '{service}' which does not exist"
+        },
+        {
+          "rule_id": "template_path_uniqueness",
+          "description": "Template paths should be unique across all fields",
+          "scope": "configuration.properties.*.x-template-path",
+          "validation": "No two fields should have the same x-template-path",
+          "severity": "error",
+          "error_message": "Template path '{path}' is used by multiple fields"
+        },
+        {
+          "rule_id": "secret_ref_exists",
+          "description": "Secret references must point to existing secrets",
+          "scope": "configuration.properties.*.x-secret-ref",
+          "validation": "Referenced secret path must exist in topology.secrets",
+          "algorithm": [
+            "1. Parse secret path (e.g., 'secrets.api_keys.litellm_master')",
+            "2. Navigate topology.secrets object",
+            "3. Verify key exists"
+          ],
+          "error_message": "Field '{field}' references secret '{secret_path}' which does not exist"
+        },
+        {
+          "rule_id": "network_consistency",
+          "description": "All services should use the same network for inter-service communication",
+          "scope": "service.infrastructure.network",
+          "validation": "All services should reference the same network (typically 'llm.network')",
+          "severity": "warning",
+          "error_message": "Service '{service}' uses network '{network}' which differs from standard '{expected_network}'"
+        }
+      ]
+    },
+
+    "runtime_level": {
+      "description": "Runtime validation (service health, connectivity, resource availability)",
+      "rules": [
+        {
+          "rule_id": "dependency_health_check",
+          "description": "Required services must be healthy before dependents start",
+          "scope": "service.infrastructure.requires",
+          "validation": "All required services must pass health check",
+          "runtime": true
+        },
+        {
+          "rule_id": "conditional_service_state",
+          "description": "Services with enabled_by conditions should start/stop based on configuration changes",
+          "scope": "service.infrastructure.enabled_by",
+          "validation": "When configuration changes affect enablement, service state should update",
+          "runtime": true
+        },
+        {
+          "rule_id": "port_availability",
+          "description": "Published ports must be available on the host",
+          "scope": "service.infrastructure.published_port",
+          "validation": "Port must not be in use by another process",
+          "runtime": true
+        }
+      ]
+    }
+  },
+
+  "validation_examples": {
+    "circular_dependency": {
+      "invalid": {
+        "service_a": {
+          "infrastructure": {
+            "requires": ["service_b"]
+          }
+        },
+        "service_b": {
+          "infrastructure": {
+            "requires": ["service_a"]
+          }
+        }
+      },
+      "error": "Circular dependency detected: service_a -> service_b -> service_a"
+    },
+
+    "missing_dependency": {
+      "invalid": {
+        "openwebui": {
+          "infrastructure": {
+            "requires": ["litellm", "nonexistent_service"]
+          }
+        }
+      },
+      "error": "Service 'openwebui' requires 'nonexistent_service' which does not exist in topology"
+    },
+
+    "port_conflict": {
+      "invalid": {
+        "service_a": {
+          "infrastructure": {
+            "published_port": 8080
+          }
+        },
+        "service_b": {
+          "infrastructure": {
+            "published_port": 8080
+          }
+        }
+      },
+      "error": "Port 8080 is published by multiple services: service_a, service_b"
+    },
+
+    "invalid_enablement_reference": {
+      "invalid": {
+        "searxng": {
+          "infrastructure": {
+            "enabled_by": ["openwebui.configuration.NONEXISTENT_FIELD == true"]
+          }
+        }
+      },
+      "error": "Enablement condition 'openwebui.configuration.NONEXISTENT_FIELD == true' references non-existent field 'NONEXISTENT_FIELD'"
+    },
+
+    "valid_provider_cascade": {
+      "valid": {
+        "openwebui": {
+          "configuration": {
+            "properties": {
+              "WEB_SEARCH_ENGINE": {
+                "type": "string",
+                "enum": ["searxng", "tavily"],
+                "x-provider-fields": {
+                  "searxng": ["SEARXNG_QUERY_URL"],
+                  "tavily": ["TAVILY_API_KEY"]
+                }
+              },
+              "SEARXNG_QUERY_URL": {
+                "type": "string",
+                "x-depends-on": {
+                  "WEB_SEARCH_ENGINE": "searxng"
+                }
+              }
+            }
+          }
+        }
+      },
+      "validation": "When WEB_SEARCH_ENGINE='searxng', SEARXNG_QUERY_URL becomes required and visible"
+    }
+  },
+
+  "validator_implementation_notes": {
+    "expression_evaluator": {
+      "description": "Simple expression evaluator for enabled_by and x-depends-on conditions",
+      "supported_operators": ["==", "!=", "&&", "||"],
+      "syntax": "service_name.configuration.FIELD_NAME operator value",
+      "examples": [
+        "openwebui.configuration.ENABLE_WEB_SEARCH == true",
+        "openwebui.configuration.WEB_SEARCH_ENGINE == 'searxng'",
+        "openwebui.configuration.ENABLE_WEB_SEARCH == true && openwebui.configuration.WEB_SEARCH_ENGINE == 'searxng'"
+      ]
+    },
+    "dependency_graph": {
+      "description": "Build directed graph from service.infrastructure.requires",
+      "algorithm": "Kahn's algorithm or DFS for topological sort",
+      "output": "Ordered list of services for startup sequence"
+    },
+    "field_path_resolution": {
+      "description": "Resolve field paths like 'litellm.configuration.LITELLM_MASTER_KEY'",
+      "algorithm": [
+        "1. Split path by '.'",
+        "2. Navigate topology object",
+        "3. Return field metadata or value"
+      ]
+    }
+  }
+}

@@ -1,0 +1,372 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/leger-labs/quadlet-setup/schemas/topology.json",
+  "title": "Multi-Service Topology Schema",
+  "description": "Unified schema for container infrastructure and runtime configuration with cross-service relationships",
+  "version": "2.0.0",
+
+  "definitions": {
+    "serviceInfrastructure": {
+      "type": "object",
+      "description": "Infrastructure/deployment configuration for a container service",
+      "properties": {
+        "image": {
+          "type": "string",
+          "description": "Container image reference",
+          "pattern": "^[a-z0-9\\.\\-/:]+$"
+        },
+        "port": {
+          "type": "integer",
+          "description": "Internal container port",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "published_port": {
+          "type": ["integer", "null"],
+          "description": "Host-published port (null if internal-only)",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "bind": {
+          "type": "string",
+          "description": "Bind address for published port",
+          "default": "0.0.0.0",
+          "enum": ["0.0.0.0", "127.0.0.1"]
+        },
+        "container_name": {
+          "type": "string",
+          "description": "Unique container name for DNS resolution",
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "hostname": {
+          "type": "string",
+          "description": "Container hostname",
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "network": {
+          "type": "string",
+          "description": "Network to attach to",
+          "default": "llm.network"
+        },
+        "requires": {
+          "type": "array",
+          "description": "Service dependencies (must start before this service)",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether service is unconditionally enabled",
+          "default": false
+        },
+        "enabled_by": {
+          "type": "array",
+          "description": "Conditional enablement expressions (evaluated as logical OR)",
+          "items": {
+            "type": "string",
+            "examples": [
+              "openwebui.features.web_search == true",
+              "openwebui.providers.vector_db == 'qdrant'"
+            ]
+          },
+          "default": []
+        },
+        "volumes": {
+          "type": "array",
+          "description": "Volume mounts",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {"type": "string"},
+              "mount_path": {"type": "string"},
+              "selinux_label": {
+                "type": "string",
+                "enum": ["Z", "z", "ro,Z", "ro,z"],
+                "default": "Z"
+              },
+              "type": {
+                "type": "string",
+                "enum": ["volume", "bind"],
+                "default": "volume"
+              }
+            },
+            "required": ["name", "mount_path"]
+          },
+          "default": []
+        },
+        "healthcheck": {
+          "type": "object",
+          "description": "Container health check configuration",
+          "properties": {
+            "cmd": {"type": "string"},
+            "interval": {"type": "string", "default": "30s"},
+            "timeout": {"type": "string", "default": "5s"},
+            "retries": {"type": "integer", "default": 3},
+            "start_period": {"type": "string", "default": "10s"}
+          },
+          "required": ["cmd"]
+        },
+        "websocket": {
+          "type": "boolean",
+          "description": "Whether service uses WebSocket connections",
+          "default": false
+        },
+        "external_subdomain": {
+          "type": ["string", "null"],
+          "description": "Subdomain for external Caddy proxy access (null if not exposed)"
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable service description"
+        }
+      },
+      "required": ["image", "container_name"]
+    },
+
+    "configurationField": {
+      "type": "object",
+      "description": "Runtime configuration field with rich metadata",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["string", "boolean", "integer", "number", "array", "object"]
+        },
+        "description": {
+          "type": "string",
+          "description": "Field purpose and usage"
+        },
+        "default": {
+          "description": "Default value if not specified"
+        },
+        "enum": {
+          "type": "array",
+          "description": "Allowed values for this field"
+        },
+        "pattern": {
+          "type": "string",
+          "description": "Regex pattern for string validation"
+        },
+        "minimum": {
+          "type": "number",
+          "description": "Minimum value for numeric fields"
+        },
+        "maximum": {
+          "type": "number",
+          "description": "Maximum value for numeric fields"
+        },
+        "x-env-var": {
+          "type": "string",
+          "description": "Environment variable name this field maps to"
+        },
+        "x-category": {
+          "type": "string",
+          "description": "UI grouping category",
+          "examples": ["General", "Features", "Providers", "Advanced", "Security"]
+        },
+        "x-display-order": {
+          "type": "integer",
+          "description": "UI display sequence within category",
+          "minimum": 1
+        },
+        "x-visibility": {
+          "type": "string",
+          "description": "UI visibility level",
+          "enum": ["exposed", "advanced", "expert", "hidden"],
+          "default": "exposed"
+        },
+        "x-sensitive": {
+          "type": "boolean",
+          "description": "Whether field contains sensitive data (passwords, keys)",
+          "default": false
+        },
+        "x-depends-on": {
+          "type": "object",
+          "description": "Field is only shown when these conditions are met",
+          "additionalProperties": true
+        },
+        "x-enables-services": {
+          "type": "array",
+          "description": "Services enabled when this field is true",
+          "items": {
+            "type": "string"
+          }
+        },
+        "x-provider-fields": {
+          "type": ["array", "object"],
+          "description": "Fields revealed when this provider is selected"
+        },
+        "x-affects-services": {
+          "type": "object",
+          "description": "Map of field values to services they enable",
+          "additionalProperties": {
+            "type": ["string", "null"]
+          }
+        },
+        "x-template-path": {
+          "type": "string",
+          "description": "Path in .chezmoi.yaml.tmpl for this value",
+          "examples": ["litellm.master_key", "openwebui.features.web_search"]
+        },
+        "x-secret-ref": {
+          "type": "string",
+          "description": "Reference to secret storage path",
+          "examples": ["secrets.api_keys.litellm_master", "secrets.llm_providers.openai"]
+        },
+        "x-rationale": {
+          "type": "string",
+          "description": "Why this configuration exists and when to change it"
+        },
+        "x-default-handling": {
+          "type": "string",
+          "description": "How default value should be treated",
+          "enum": ["preloaded", "unset", "user-configured"],
+          "default": "preloaded"
+        },
+        "x-requires-field": {
+          "type": "string",
+          "description": "Path to another field this depends on",
+          "examples": ["litellm.master_key", "searxng.redis_url"]
+        }
+      },
+      "required": ["type", "description"]
+    },
+
+    "serviceConfiguration": {
+      "type": "object",
+      "description": "Runtime configuration schema for a service",
+      "properties": {
+        "type": {
+          "const": "object"
+        },
+        "properties": {
+          "type": "object",
+          "description": "Configuration fields",
+          "additionalProperties": {
+            "$ref": "#/definitions/configurationField"
+          }
+        },
+        "required": {
+          "type": "array",
+          "description": "Required configuration fields",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+
+    "service": {
+      "type": "object",
+      "description": "Complete service definition with infrastructure and configuration",
+      "properties": {
+        "infrastructure": {
+          "$ref": "#/definitions/serviceInfrastructure"
+        },
+        "configuration": {
+          "$ref": "#/definitions/serviceConfiguration"
+        }
+      },
+      "required": ["infrastructure"]
+    },
+
+    "network": {
+      "type": "object",
+      "description": "Network configuration",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Network name"
+        },
+        "subnet": {
+          "type": "string",
+          "description": "Network subnet in CIDR notation",
+          "pattern": "^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}/\\d{1,2}$"
+        },
+        "gateway": {
+          "type": "string",
+          "description": "Network gateway IP",
+          "pattern": "^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$"
+        }
+      },
+      "required": ["name", "subnet", "gateway"]
+    },
+
+    "secrets": {
+      "type": "object",
+      "description": "Centralized secret management",
+      "properties": {
+        "api_keys": {
+          "type": "object",
+          "description": "Internal service API keys",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "llm_providers": {
+          "type": "object",
+          "description": "External LLM provider API keys",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "search_providers": {
+          "type": "object",
+          "description": "Search provider API keys",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "audio_providers": {
+          "type": "object",
+          "description": "Audio provider API keys",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "Schema version",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "release": {
+      "type": "object",
+      "description": "Release information",
+      "properties": {
+        "version": {"type": "string"},
+        "released_at": {"type": "string", "format": "date-time"},
+        "template_sha": {"type": "string"},
+        "changelog_url": {"type": "string", "format": "uri"},
+        "description": {"type": "string"}
+      }
+    },
+    "topology": {
+      "type": "object",
+      "description": "Complete service topology",
+      "properties": {
+        "network": {
+          "$ref": "#/definitions/network"
+        },
+        "services": {
+          "type": "object",
+          "description": "All services in the topology",
+          "additionalProperties": {
+            "$ref": "#/definitions/service"
+          }
+        }
+      },
+      "required": ["network", "services"]
+    },
+    "secrets": {
+      "$ref": "#/definitions/secrets"
+    }
+  },
+  "required": ["schema_version", "topology"]
+}

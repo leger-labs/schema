@@ -1,0 +1,140 @@
+{% import "macros.njk" as m -%}
+# ═════════════════════════════════════════════════════════════════════════════
+# 🎨 COMFYUI - Stable Diffusion Workflow Engine
+# Generated from blueprint-config.json
+# ═════════════════════════════════════════════════════════════════════════════
+
+{% set service = infrastructure.services.comfyui %}
+{% set network = infrastructure.network %}
+
+[Unit]
+Description={{ service.description }}
+After=network-online.target {{ network.name }}.network.service
+Requires={{ network.name }}.network.service
+
+[Container]
+Image={{ service.image }}
+AutoUpdate=registry
+ContainerName={{ service.container_name }}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🌐 NETWORK
+# ═════════════════════════════════════════════════════════════════════════════
+Network={{ network.name }}.network
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 📍 PUBLISHED PORT (for OpenWebUI integration and Caddy proxy)
+# ═════════════════════════════════════════════════════════════════════════════
+{{ m.publishPort(service) }}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 💾 VOLUMES
+# ═════════════════════════════════════════════════════════════════════════════
+# Main workspace volume (outputs, user files, custom nodes)
+{{ m.volumeMount(service.volume, service.workspace) }}
+
+# Models volume (SD checkpoints, VAEs, LoRAs, embeddings)
+{{ m.volumeMount(service.models_volume, service.workspace + "/models") }}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🌍 ENVIRONMENT - ComfyUI Configuration
+# ═════════════════════════════════════════════════════════════════════════════
+
+# Workspace directory
+Environment=WORKSPACE={{ comfyui.workspace }}
+
+# Disable auto-update (we manage versions via image tags)
+Environment=AUTO_UPDATE={{ comfyui.auto_update | lower }}
+
+# Disable CloudFlare tunnels (we use Tailscale + Caddy)
+Environment=CF_QUICK_TUNNELS=false
+
+# Authentication (disabled for local services per CLAUDE.md)
+Environment=WEB_ENABLE_AUTH={{ comfyui.web_enable_auth | lower }}
+
+# ComfyUI server port
+Environment=COMFYUI_PORT_HOST={{ service.port }}
+
+# HuggingFace token for model downloads
+{% if comfyui.hf_token %}
+Environment=HF_TOKEN={{ comfyui.hf_token }}
+{% endif %}
+
+# CivitAI token for model downloads
+{% if comfyui.civitai_token %}
+Environment=CIVITAI_TOKEN={{ comfyui.civitai_token }}
+{% endif %}
+
+# Additional ComfyUI arguments
+{% if comfyui.args %}
+Environment=COMFYUI_ARGS={{ comfyui.args }}
+{% endif %}
+
+# Logging
+Environment=LOG_LEVEL={{ comfyui.log_level }}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🔧 HEALTH CHECK
+# ═════════════════════════════════════════════════════════════════════════════
+
+# ComfyUI API health check
+{{ m.healthCheckWget(service.port, "/system_stats") }}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🚀 SERVICE
+# ═════════════════════════════════════════════════════════════════════════════
+{{ m.serviceSection(timeout=900) }}
+
+# Startup verification - ComfyUI takes longer to start (model loading)
+ExecStartPost=/bin/sh -c '\
+  echo "ComfyUI: Waiting for service to be ready..."; \
+  for i in $(seq 1 60); do \
+    if wget --no-verbose --tries=1 --spider --timeout=2 http://localhost:{{ service.port }}/system_stats 2>/dev/null; then \
+      echo "ComfyUI: ✓ Service health check passed"; \
+      echo "ComfyUI: Service ready at http://localhost:{{ service.port }}"; \
+      echo "ComfyUI: WebSocket available at ws://localhost:{{ service.port }}/ws"; \
+      exit 0; \
+    fi; \
+    sleep 2; \
+  done; \
+  echo "ComfyUI: ⚠ Service started but verification incomplete (model loading may still be in progress)"; \
+  exit 0'
+
+[Install]
+# Managed via dependencies - no direct WantedBy
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 📝 ARCHITECTURE NOTES
+# ═════════════════════════════════════════════════════════════════════════════
+#
+# PURPOSE:
+#   ComfyUI provides node-based Stable Diffusion workflows for image generation
+#   Integrates with OpenWebUI when openwebui.features.image_generation is enabled
+#
+# INTEGRATION:
+#   - OpenWebUI: Image generation via API at http://comfyui:{{ service.port }}
+#   - Caddy: External access at https://{{ service.external_subdomain }}.{{ tailscale.full_hostname }}
+#
+# VOLUMES:
+#   - Workspace: User files, outputs, custom nodes, configurations
+#   - Models: SD checkpoints, VAEs, LoRAs, embeddings (can be large, separate volume)
+#
+# NETWORK:
+#   - Container: {{ service.hostname }}:{{ service.port }}
+#   - Published: {{ service.bind }}:{{ service.published_port }} → {{ service.port }}
+#   - External: https://{{ service.external_subdomain }}.{{ tailscale.full_hostname }}
+#
+# MODELS:
+#   Default workflow uses FLUX.1 schnell (fast generation):
+#   - Model: {{ comfyui.default_model }}
+#   - VAE: {{ comfyui.default_vae }}
+#   - CLIP: {{ comfyui.default_clip_1 }}, {{ comfyui.default_clip_2 }}
+#
+# HARDWARE:
+#   - AMD GPU acceleration handled automatically by platform
+#   - No explicit GPU configuration needed (per CLAUDE.md)
+#
+# ENABLED BY:
+#   - openwebui.features.image_generation = true
+#
+# ═════════════════════════════════════════════════════════════════════════════

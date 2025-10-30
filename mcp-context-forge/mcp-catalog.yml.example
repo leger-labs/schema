@@ -1,0 +1,410 @@
+# ═════════════════════════════════════════════════════════════════════════════
+# MCP Server Catalog - Pre-configured MCP Servers
+# ═════════════════════════════════════════════════════════════════════════════
+#
+# PURPOSE:
+#   This file pre-configures MCP servers for quick discovery and registration.
+#   Servers listed here appear in the Admin UI for easy one-click registration.
+#
+# LOCATION:
+#   Copy this file to: ~/.config/mcp-context-forge/mcp-catalog.yml
+#
+# ENABLE IN CONFIGURATION:
+#   Set in blueprint-config.json:
+#   {
+#     "catalog_enabled": true
+#   }
+#
+# IMPORTANT:
+#   - Servers in this catalog are NOT automatically registered
+#   - They are discovered and available for registration via Admin UI
+#   - Authentication credentials are configured AFTER registration via UI
+#
+# ═════════════════════════════════════════════════════════════════════════════
+
+servers:
+  # ───────────────────────────────────────────────────────────────────────────
+  # FILESYSTEM SERVER
+  # ───────────────────────────────────────────────────────────────────────────
+  - name: filesystem
+    url: http://mcp-filesystem:8080/sse
+    transport: sse
+    description: Filesystem access tools (read, write, list, search)
+    tags:
+      - filesystem
+      - tools
+      - productivity
+    enabled: true
+    # No auth required for internal services
+    auth_type: none
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # GIT SERVER
+  # ───────────────────────────────────────────────────────────────────────────
+  - name: git
+    url: http://mcp-git:8080/sse
+    transport: sse
+    description: Git repository tools (status, diff, commit, push, pull)
+    tags:
+      - git
+      - vcs
+      - tools
+    enabled: true
+    auth_type: none
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # POSTGRESQL SERVER
+  # ───────────────────────────────────────────────────────────────────────────
+  - name: postgres
+    url: http://mcp-postgres:8080/sse
+    transport: sse
+    description: PostgreSQL database tools (query, schema inspection)
+    tags:
+      - database
+      - postgres
+      - tools
+    enabled: false  # Disabled by default - enable when needed
+    auth_type: bearer
+    # Configure auth_value via Admin UI after registration
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # SQLITE SERVER
+  # ───────────────────────────────────────────────────────────────────────────
+  - name: sqlite
+    url: http://mcp-sqlite:8080/sse
+    transport: sse
+    description: SQLite database tools (query, schema inspection)
+    tags:
+      - database
+      - sqlite
+      - tools
+    enabled: false
+    auth_type: none
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # WEB SEARCH SERVER (Brave, Google, etc.)
+  # ───────────────────────────────────────────────────────────────────────────
+  - name: web-search
+    url: http://mcp-web-search:8080/sse
+    transport: sse
+    description: Web search tools (Brave, Google, DuckDuckGo)
+    tags:
+      - search
+      - web
+      - tools
+    enabled: false
+    auth_type: api_key
+    # Configure API key via Admin UI
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # PUPPETEER SERVER (Browser automation)
+  # ───────────────────────────────────────────────────────────────────────────
+  - name: puppeteer
+    url: http://mcp-puppeteer:8080/sse
+    transport: sse
+    description: Browser automation tools (screenshot, scrape, navigate)
+    tags:
+      - browser
+      - automation
+      - tools
+    enabled: false
+    auth_type: none
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # FETCH SERVER (HTTP client)
+  # ───────────────────────────────────────────────────────────────────────────
+  - name: fetch
+    url: http://mcp-fetch:8080/sse
+    transport: sse
+    description: HTTP client tools (GET, POST, headers)
+    tags:
+      - http
+      - tools
+    enabled: true
+    auth_type: none
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # GITHUB SERVER
+  # ───────────────────────────────────────────────────────────────────────────
+  - name: github
+    url: http://mcp-github:8080/sse
+    transport: sse
+    description: GitHub API tools (repos, issues, PRs, actions)
+    tags:
+      - github
+      - vcs
+      - tools
+    enabled: false
+    auth_type: bearer
+    # Configure GitHub token via Admin UI
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # SLACK SERVER
+  # ───────────────────────────────────────────────────────────────────────────
+  - name: slack
+    url: http://mcp-slack:8080/sse
+    transport: sse
+    description: Slack API tools (channels, messages, users)
+    tags:
+      - slack
+      - communication
+      - tools
+    enabled: false
+    auth_type: oauth
+    # Configure OAuth via Admin UI
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # GMAIL SERVER
+  # ───────────────────────────────────────────────────────────────────────────
+  - name: gmail
+    url: http://mcp-gmail:8080/sse
+    transport: sse
+    description: Gmail API tools (read, send, search)
+    tags:
+      - email
+      - google
+      - tools
+    enabled: false
+    auth_type: oauth
+    # Configure OAuth via Admin UI
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # GOOGLE DRIVE SERVER
+  # ───────────────────────────────────────────────────────────────────────────
+  - name: google-drive
+    url: http://mcp-google-drive:8080/sse
+    transport: sse
+    description: Google Drive API tools (files, folders, sharing)
+    tags:
+      - storage
+      - google
+      - tools
+    enabled: false
+    auth_type: oauth
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # MEMORY SERVER (Persistent knowledge)
+  # ───────────────────────────────────────────────────────────────────────────
+  - name: memory
+    url: http://mcp-memory:8080/sse
+    transport: sse
+    description: Persistent memory/knowledge storage for AI agents
+    tags:
+      - memory
+      - knowledge
+      - tools
+    enabled: true
+    auth_type: none
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # TIME SERVER
+  # ───────────────────────────────────────────────────────────────────────────
+  - name: time
+    url: http://mcp-time:8080/sse
+    transport: sse
+    description: Time and date tools (current time, timezones, calculations)
+    tags:
+      - time
+      - utilities
+      - tools
+    enabled: true
+    auth_type: none
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # WEATHER SERVER
+  # ───────────────────────────────────────────────────────────────────────────
+  - name: weather
+    url: http://mcp-weather:8080/sse
+    transport: sse
+    description: Weather information tools (current, forecast)
+    tags:
+      - weather
+      - data
+      - tools
+    enabled: false
+    auth_type: api_key
+    # Configure weather API key via Admin UI
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # CALCULATOR SERVER
+  # ───────────────────────────────────────────────────────────────────────────
+  - name: calculator
+    url: http://mcp-calculator:8080/sse
+    transport: sse
+    description: Mathematical calculations and evaluations
+    tags:
+      - math
+      - utilities
+      - tools
+    enabled: true
+    auth_type: none
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # SEQUENTIAL THINKING SERVER
+  # ───────────────────────────────────────────────────────────────────────────
+  - name: sequential-thinking
+    url: http://mcp-sequential-thinking:8080/sse
+    transport: sse
+    description: Chain-of-thought reasoning tools for AI agents
+    tags:
+      - reasoning
+      - ai
+      - tools
+    enabled: true
+    auth_type: none
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # DOCKER SERVER
+  # ───────────────────────────────────────────────────────────────────────────
+  - name: docker
+    url: http://mcp-docker:8080/sse
+    transport: sse
+    description: Docker container management tools
+    tags:
+      - docker
+      - containers
+      - tools
+    enabled: false
+    auth_type: none
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # KUBERNETES SERVER
+  # ───────────────────────────────────────────────────────────────────────────
+  - name: kubernetes
+    url: http://mcp-kubernetes:8080/sse
+    transport: sse
+    description: Kubernetes cluster management tools
+    tags:
+      - kubernetes
+      - containers
+      - tools
+    enabled: false
+    auth_type: bearer
+    # Configure kubeconfig via Admin UI
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # AWS SERVER
+  # ───────────────────────────────────────────────────────────────────────────
+  - name: aws
+    url: http://mcp-aws:8080/sse
+    transport: sse
+    description: AWS cloud service tools (S3, EC2, Lambda, etc.)
+    tags:
+      - aws
+      - cloud
+      - tools
+    enabled: false
+    auth_type: aws_signature
+    # Configure AWS credentials via Admin UI
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # CUSTOM REST API SERVER (Example)
+  # ───────────────────────────────────────────────────────────────────────────
+  - name: my-custom-api
+    url: http://my-api-service:8080/sse
+    transport: sse
+    description: My custom REST API wrapped as MCP server
+    tags:
+      - custom
+      - api
+      - tools
+    enabled: false
+    auth_type: bearer
+    # Configure custom API token via Admin UI
+
+# ═════════════════════════════════════════════════════════════════════════════
+# AUTHENTICATION TYPES
+# ═════════════════════════════════════════════════════════════════════════════
+#
+# auth_type options:
+#   - none:           No authentication required
+#   - bearer:         Bearer token (Authorization: Bearer TOKEN)
+#   - api_key:        API key (X-API-Key header or query param)
+#   - basic:          Basic auth (username:password)
+#   - oauth:          OAuth 2.0 (configured via Admin UI)
+#   - aws_signature:  AWS Signature v4
+#   - custom:         Custom authentication (configured via Admin UI)
+#
+# ═════════════════════════════════════════════════════════════════════════════
+# TRANSPORT TYPES
+# ═════════════════════════════════════════════════════════════════════════════
+#
+# transport options:
+#   - sse:      Server-Sent Events (recommended for most cases)
+#   - ws:       WebSocket
+#   - http:     HTTP request/response
+#   - stdio:    Standard I/O (for local processes)
+#
+# ═════════════════════════════════════════════════════════════════════════════
+# USAGE WORKFLOW
+# ═════════════════════════════════════════════════════════════════════════════
+#
+# 1. Copy this file to ~/.config/mcp-context-forge/mcp-catalog.yml
+#
+# 2. Enable catalog in blueprint-config.json:
+#    {
+#      "catalog_enabled": true
+#    }
+#
+# 3. Start/restart MCP Context Forge:
+#    systemctl --user restart mcp-context-forge.service
+#
+# 4. Navigate to Admin UI:
+#    http://localhost:4444/admin
+#
+# 5. Go to "Catalog" section - you'll see all servers listed here
+#
+# 6. Click "Register" on servers you want to use
+#
+# 7. For servers with auth_type != "none":
+#    - After registration, go to "Gateways"
+#    - Click "Edit" on the registered server
+#    - Configure authentication credentials
+#    - Save
+#
+# 8. Create virtual servers bundling tools:
+#    - Go to "Servers" → "Create Virtual Server"
+#    - Select tools from registered gateways
+#    - Save
+#
+# 9. Connect MCP clients to virtual servers:
+#    SSE:       http://localhost:4444/servers/{name}/sse
+#    WebSocket: ws://localhost:4444/servers/{name}/ws
+#
+# ═════════════════════════════════════════════════════════════════════════════
+# CUSTOMIZATION
+# ═════════════════════════════════════════════════════════════════════════════
+#
+# Add your own MCP servers:
+#
+# - name: my-server
+#   url: http://my-mcp-service:8080/sse
+#   transport: sse
+#   description: My custom MCP server
+#   tags:
+#     - custom
+#     - tools
+#   enabled: true
+#   auth_type: bearer
+#
+# Server URLs should point to MCP-compatible endpoints on your llm.network.
+#
+# ═════════════════════════════════════════════════════════════════════════════
+# OFFICIAL MCP SERVERS
+# ═════════════════════════════════════════════════════════════════════════════
+#
+# See the MCP Server Registry for official implementations:
+# https://github.com/modelcontextprotocol/servers
+#
+# Popular servers:
+# - @modelcontextprotocol/server-filesystem
+# - @modelcontextprotocol/server-git
+# - @modelcontextprotocol/server-github
+# - @modelcontextprotocol/server-google-drive
+# - @modelcontextprotocol/server-postgres
+# - @modelcontextprotocol/server-sqlite
+# - @modelcontextprotocol/server-slack
+# - @modelcontextprotocol/server-puppeteer
+# - @modelcontextprotocol/server-brave-search
+#
+# ═════════════════════════════════════════════════════════════════════════════

@@ -1,0 +1,65 @@
+{% import "../macros.njk" as m -%}
+{% set catalog = (readFile('../release-catalog.json') | fromJson) -%}
+{% set service_def = catalog.services.searxng -%}
+# ═════════════════════════════════════════════════════════════════════════════
+# {{ service_def.name }} v{{ service_def.version }}
+# Release: {{ catalog.release.version }}
+# {{ service_def.notes }}
+# ═════════════════════════════════════════════════════════════════════════════
+
+[Unit]
+Description={{ infrastructure.services.searxng.description }}
+After=network-online.target {{ infrastructure.network.name }}.network.service
+After=searxng-redis.service
+Requires={{ infrastructure.network.name }}.network.service
+Wants=searxng-redis.service
+
+[Container]
+Image={{ service_def.image }}
+AutoUpdate=registry
+ContainerName={{ infrastructure.services.searxng.container_name }}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🌐 NETWORK
+# ═════════════════════════════════════════════════════════════════════════════
+Network={{ infrastructure.network.name }}.network
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 📍 PUBLISHED PORT (for Caddy to access)
+# ═════════════════════════════════════════════════════════════════════════════
+{{ m.publishPort(infrastructure.services.searxng) }}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 💾 VOLUMES
+# ═════════════════════════════════════════════════════════════════════════════
+{{ m.volumeMount(infrastructure.services.searxng.volume, "/etc/searxng") }}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🔐 ENVIRONMENT - Auto-generated from configuration
+# ═════════════════════════════════════════════════════════════════════════════
+
+# Base URL (auto-generated from Tailscale config)
+Environment=SEARXNG_BASE_URL={{ searxng.base_url }}
+
+# Redis connection
+Environment=SEARXNG_REDIS_URL={{ searxng.redis_url }}
+
+# UWSGI worker configuration
+Environment=SEARXNG_UWSGI_WORKERS=8
+Environment=SEARXNG_UWSGI_THREADS=4
+
+# Disable rate limiting (local instance only)
+Environment=SEARXNG_LIMITER=false
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🔧 HEALTH CHECK
+# ═════════════════════════════════════════════════════════════════════════════
+{{ m.healthCheckWget(infrastructure.services.searxng.port, "/") }}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🚀 SERVICE
+# ═════════════════════════════════════════════════════════════════════════════
+{{ m.serviceSection(timeout=900) }}
+
+[Install]
+# No WantedBy - dependencies via After/Requires

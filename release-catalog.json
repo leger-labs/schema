@@ -1,0 +1,167 @@
+{
+  "release": {
+    "version": "v1.0.0",
+    "released_at": "2025-10-22T00:00:00Z",
+    "template_sha": "initial",
+    "changelog_url": "https://github.com/leger-labs/quadlet-setup/releases/tag/v1.0.0",
+    "description": "Initial release with verified container versions as of October 2025"
+  },
+
+  "services": {
+    "openwebui": {
+      "name": "Open WebUI",
+      "version": "0.6.34",
+      "image": "ghcr.io/open-webui/open-webui:0.6.34",
+      "image_sha": "",
+      "template_version": "v1.0.0",
+      "dependencies": ["openwebui_postgres", "openwebui_redis", "litellm"],
+      "notes": "Updated to 0.6.34 for MinerU parser, JWT token expiration, performance improvements"
+    },
+
+    "openwebui_postgres": {
+      "name": "OpenWebUI PostgreSQL",
+      "version": "16",
+      "image": "docker.io/pgvector/pgvector:pg16",
+      "image_sha": "",
+      "notes": "pgvector 0.8.1 - stable version"
+    },
+
+    "openwebui_redis": {
+      "name": "OpenWebUI Redis",
+      "version": "7.2",
+      "image": "docker.io/redis:7.2-alpine",
+      "image_sha": "",
+      "notes": "Redis 7.2.11 - stable version"
+    },
+
+    "litellm": {
+      "name": "LiteLLM",
+      "version": "1.78.5",
+      "image": "ghcr.io/berriai/litellm:main-v1.78.5",
+      "image_sha": "",
+      "template_version": "v1.0.0",
+      "dependencies": ["litellm_postgres", "litellm_redis"],
+      "notes": "Updated to 1.78.5 for 54% performance improvements, Claude Haiku 4.5, GPT-5-Codex support"
+    },
+
+    "litellm_postgres": {
+      "name": "LiteLLM PostgreSQL",
+      "version": "16",
+      "image": "docker.io/pgvector/pgvector:pg16",
+      "image_sha": "",
+      "notes": "pgvector 0.8.1 - stable version"
+    },
+
+    "litellm_redis": {
+      "name": "LiteLLM Redis",
+      "version": "7.2",
+      "image": "docker.io/redis:7.2-alpine",
+      "image_sha": "",
+      "notes": "Redis 7.2.11 - stable version"
+    },
+
+    "caddy": {
+      "name": "Caddy",
+      "version": "2.10",
+      "image": "docker.io/caddy:2.10-alpine",
+      "image_sha": "",
+      "notes": "Updated to 2.10 for ECH support, security improvements"
+    },
+
+    "searxng": {
+      "name": "SearXNG",
+      "version": "latest",
+      "image": "docker.io/searxng/searxng:latest",
+      "image_sha": "",
+      "dependencies": ["searxng_redis"],
+      "notes": "Actively maintained, using rolling latest tag"
+    },
+
+    "searxng_redis": {
+      "name": "SearXNG Redis",
+      "version": "7.2",
+      "image": "docker.io/redis:7.2-alpine",
+      "image_sha": "",
+      "notes": "Redis 7.2.11 - stable version"
+    },
+
+    "jupyter": {
+      "name": "Jupyter Lab",
+      "version": "4.4.9",
+      "image": "localhost/blueprint-jupyter:latest",
+      "image_sha": "",
+      "notes": "Custom build - rebuild with JupyterLab 4.4.9 base (released Oct 15, 2025)"
+    },
+
+    "whisper": {
+      "name": "Faster Whisper",
+      "version": "latest",
+      "image": "docker.io/fedirz/faster-whisper-server:latest-cpu",
+      "image_sha": "",
+      "notes": "Using latest-cpu tag for CPU-optimized builds"
+    },
+
+    "edgetts": {
+      "name": "Edge TTS",
+      "version": "latest",
+      "image": "docker.io/travisvn/openai-edge-tts:latest",
+      "image_sha": "",
+      "notes": "CORRECTED: Was ghcr.io/traefik/parakeet (wrong image). Now using OpenAI-compatible Edge TTS API"
+    },
+
+    "tika": {
+      "name": "Apache Tika",
+      "version": "latest",
+      "image": "docker.io/apache/tika:latest-full",
+      "image_sha": "",
+      "notes": "Tika 3.2.3 (Sep 2025) - full version includes all parsers"
+    },
+
+    "qdrant": {
+      "name": "Qdrant",
+      "version": "latest",
+      "image": "docker.io/qdrant/qdrant:latest",
+      "image_sha": "",
+      "notes": "v1.16.0 (Sep 2025) - using rolling latest tag"
+    },
+
+    "llama_swap": {
+      "name": "Llama Swap",
+      "version": "latest",
+      "image": "ghcr.io/mostlygeek/llama-swap:cpu",
+      "image_sha": "",
+      "notes": "v156 (Aug 2025) - CPU-optimized model router"
+    },
+
+    "cockpit": {
+      "name": "Cockpit",
+      "version": "latest",
+      "image": "quay.io/cockpit/ws:latest",
+      "image_sha": "",
+      "notes": "Version 346 (Sep 2025) - using rolling latest tag"
+    },
+
+    "mcp_context_forge": {
+      "name": "MCP Context Forge",
+      "version": "0.8.0",
+      "image": "ghcr.io/ibm/mcp-context-forge:0.8.0",
+      "image_sha": "",
+      "dependencies": ["mcp_context_forge_postgres"],
+      "notes": "Latest stable (Oct 7, 2025) - Enterprise Model Context Protocol Gateway"
+    },
+
+    "mcp_context_forge_postgres": {
+      "name": "MCP PostgreSQL",
+      "version": "17",
+      "image": "docker.io/postgres:17",
+      "image_sha": "",
+      "notes": "PostgreSQL 17.4 - latest major version"
+    }
+  },
+
+  "audit": {
+    "date": "2025-10-22",
+    "verified": true,
+    "notes": "All versions audited and verified. EdgeTTS image corrected from traefik/parakeet to travisvn/openai-edge-tts."
+  }
+}

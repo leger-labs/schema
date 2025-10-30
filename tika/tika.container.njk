@@ -1,0 +1,43 @@
+{% import "../macros.njk" as m -%}
+{% set catalog = (readFile('../release-catalog.json') | fromJson) -%}
+{% set service_def = catalog.services.tika -%}
+# ═════════════════════════════════════════════════════════════════════════════
+# 📄 {{ service_def.name }} v{{ service_def.version }}
+# Release: {{ catalog.release.version }}
+# {{ service_def.notes }}
+# Conditionally enabled when: openwebui.providers.content_extraction == "tika"
+# ═════════════════════════════════════════════════════════════════════════════
+
+[Unit]
+Description={{ infrastructure.services.tika.description }}
+After=network-online.target {{ infrastructure.network.name }}.network.service
+Requires={{ infrastructure.network.name }}.network.service
+
+[Container]
+Image={{ service_def.image }}
+AutoUpdate=registry
+ContainerName={{ infrastructure.services.tika.container_name }}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🌐 NETWORK - Internal only, no published ports
+# ═════════════════════════════════════════════════════════════════════════════
+Network={{ infrastructure.network.name }}.network
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🔐 ENVIRONMENT - Java heap settings for document processing
+# ═════════════════════════════════════════════════════════════════════════════
+Environment=TIKA_CHILD_JAVA_OPTS=-JXmx{{ infrastructure.services.tika.heap_size | default("2g") }}
+Environment=TIKA_CHILD_MAX_HEAP={{ infrastructure.services.tika.heap_size | default("2g") }}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🔧 HEALTH CHECK
+# ═════════════════════════════════════════════════════════════════════════════
+{{ m.healthCheckWget(infrastructure.services.tika.port, "/tika") }}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🚀 SERVICE
+# ═════════════════════════════════════════════════════════════════════════════
+{{ m.serviceSection(timeout=600) }}
+
+[Install]
+# No WantedBy - dependencies via After/Requires

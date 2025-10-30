@@ -1,0 +1,103 @@
+# ═════════════════════════════════════════════════════════════════════════════
+# 🤖 LITELLM CONFIGURATION
+# Auto-generated from blueprint-config.json
+# ═════════════════════════════════════════════════════════════════════════════
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🤖 MODEL DEFINITIONS
+# ═════════════════════════════════════════════════════════════════════════════
+model_list:
+  # ───────────────────────────────────────────────────────────────────────────
+  # CLOUD MODELS (OpenAI, Anthropic, Google, etc.)
+  # Auto-generated from blueprint-config.json → litellm.models
+  # ───────────────────────────────────────────────────────────────────────────
+  {% for model in litellm.models %}
+  {%- if model.enabled %}
+  
+  # {{ model.name }} ({{ model.provider | capitalize }}){% if model.description %} - {{ model.description }}{% endif %}
+  - model_name: {{ model.name }}
+    litellm_params:
+      {% if model.provider == "openai" -%}
+      model: openai/{{ model.name }}
+      api_key: os.environ/OPENAI_API_KEY
+      {% elif model.provider == "anthropic" -%}
+      model: anthropic/{{ model.name }}
+      api_key: os.environ/ANTHROPIC_API_KEY
+      {% elif model.provider == "gemini" -%}
+      model: gemini/{{ model.name }}
+      api_key: os.environ/GEMINI_API_KEY
+      {% elif model.provider == "openrouter" -%}
+      model: {{ model.openrouter_model }}
+      api_base: https://openrouter.ai/api/v1
+      api_key: os.environ/OPENROUTER_API_KEY
+      custom_llm_provider: openrouter
+      {% elif model.provider == "groq" -%}
+      model: {{ model.groq_model }}
+      api_base: https://api.groq.com/openai/v1
+      api_key: os.environ/GROQ_API_KEY
+      custom_llm_provider: groq
+      {% endif -%}
+      {% if model.context_window -%}
+      max_tokens: {{ model.context_window }}
+      {% endif -%}
+      stream: true
+  {% endif -%}
+  {% endfor %}
+  
+  # ───────────────────────────────────────────────────────────────────────────
+  # LOCAL MODELS (via llama-swap → ramalama)
+  # Auto-generated from blueprint-config.json → local_inference.models
+  # ───────────────────────────────────────────────────────────────────────────
+  {% for key, model in local_inference.models %}
+  {%- if model.enabled and model.group != "embeddings" %}
+  
+  # {{ model.display_name }}{% if model.group %} [{{ model.group }} group]{% endif %} (Local)
+  - model_name: {{ model.name }}
+    litellm_params:
+      model: openai/{{ model.name }}
+      api_base: http://{{ infrastructure.services.llama_swap.hostname }}:{{ infrastructure.services.llama_swap.port }}/v1
+      api_key: "sk-no-key-required"
+      stream: true
+      custom_llm_provider: openai
+  {% endif -%}
+  {% endfor %}
+
+  # ───────────────────────────────────────────────────────────────────────
+  # EMBEDDING MODELS (via llama-swap → ramalama)
+  # ───────────────────────────────────────────────────────────────────────
+  {% for key, model in local_inference.models %}
+  {%- if model.enabled and model.group == "embeddings" %}
+  
+  # {{ model.display_name }} [{{ model.group }} group] (Local Embedding)
+  - model_name: {{ model.name }}
+    litellm_params:
+      model: openai/{{ model.name }}
+      api_base: http://{{ infrastructure.services.llama_swap.hostname }}:{{ infrastructure.services.llama_swap.port }}/v1
+      api_key: "sk-no-key-required"
+      custom_llm_provider: openai
+  {% endif -%}
+  {% endfor %}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# ⚙️  LITELLM SETTINGS
+# ═════════════════════════════════════════════════════════════════════════════
+litellm_settings:
+  drop_params: {{ litellm.drop_params | default(true) | lower }}
+  
+  # Redis caching
+  cache: true
+  cache_params:
+    type: redis
+    host: {{ infrastructure.services.litellm_redis.hostname }}
+    port: {{ infrastructure.services.litellm_redis.port }}
+    ttl: 3600
+  
+  set_verbose: false
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🔧 GENERAL SETTINGS
+# ═════════════════════════════════════════════════════════════════════════════
+general_settings:
+  database_url: "{{ litellm.database_url }}"
+  master_key: os.environ/LITELLM_MASTER_KEY
+  store_model_in_db: true

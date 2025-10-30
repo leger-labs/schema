@@ -1,0 +1,101 @@
+# ═════════════════════════════════════════════════════════════════════════════
+# 🔄 LLAMA-SWAP CONFIGURATION
+# Generated from blueprint-config.json → local_inference section
+# ═════════════════════════════════════════════════════════════════════════════
+#
+# This configuration defines the models that llama-swap will manage and route.
+# Models are generated from the local_inference.models section of blueprint-config.json
+#
+# Model groups:
+{% for group_key, group_config in local_inference.groups %}
+#   - {{ group_key }}: {{ group_config.description }}
+{% endfor %}
+# ═════════════════════════════════════════════════════════════════════════════
+
+# Server configuration
+server:
+  host: 0.0.0.0
+  port: {{ infrastructure.services.llama_swap.port }}
+  log_level: {{ local_inference.defaults.log_level }}
+  metrics_max_in_memory: {{ local_inference.defaults.metrics_max_in_memory }}
+
+# Container runtime
+runtime:
+  podman_sock: unix:///run/podman/podman.sock
+  container_image: {{ local_inference.defaults.container_image }}
+  network: {{ infrastructure.network.name }}.network
+
+# Model definitions - auto-generated from blueprint-config.json
+models:
+{% for model_key, model in local_inference.models %}
+{% if model.enabled %}
+  - name: {{ model.name }}
+    display_name: {{ model.display_name }}
+    uri: {{ model.model_uri }}
+
+    # Context and memory settings
+    ctx_size: {{ model.ctx_size }}
+    ngl: {{ local_inference.defaults.ngl }}
+
+    # Model behavior
+    ttl: {{ model.ttl }}  # Time-to-live in seconds (0 = never unload)
+    temp: {{ local_inference.defaults.temp }}
+    threads: {{ local_inference.defaults.threads }}
+
+    # Performance optimization
+    backend: {{ local_inference.defaults.backend }}
+    cache_reuse: {{ local_inference.defaults.cache_reuse }}
+    flash_attn: {{ model.flash_attn | lower }}
+
+    # Hardware configuration
+    vulkan_driver: {{ model.vulkan_driver }}
+
+    # Group membership (for swap management)
+    group: {{ model.group }}
+{% if model.group == "heavy" %}
+    swap_enabled: true
+{% else %}
+    swap_enabled: false
+{% endif %}
+
+    # Health check timeout
+    health_check_timeout: {{ local_inference.defaults.health_check_timeout }}
+
+    # Container port assignment
+    port: {{ local_inference.defaults.start_port + loop.index0 }}
+
+{% endif %}
+{% endfor %}
+
+# Swap group configuration
+swap_groups:
+{% for group_key, group_config in local_inference.groups %}
+{% if group_config.swap %}
+  - name: {{ group_key }}
+    swap_enabled: true
+    description: {{ group_config.description }}
+    members:
+{% for member in group_config.members %}
+      - {{ member }}
+{% endfor %}
+{% endif %}
+{% endfor %}
+
+# Auto-unload configuration
+auto_unload:
+  enabled: {{ local_inference.defaults.auto_unload | lower }}
+  check_interval: 60  # Check every 60 seconds
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 📝 GENERATED MODEL ROSTER
+# ═════════════════════════════════════════════════════════════════════════════
+{% for model_key, model in local_inference.models %}
+{% if model.enabled %}
+# {{ model.name }}: {{ model.description }}
+#   - Size: ~{{ model.ram_required_gb }}GB RAM
+#   - Context: {{ model.context_length }} tokens
+#   - Group: {{ model.group }}
+#   - Quantization: {{ model.quantization }}
+{% endif %}
+{% endfor %}
+# ═════════════════════════════════════════════════════════════════════════════

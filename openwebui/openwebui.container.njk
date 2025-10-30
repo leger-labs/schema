@@ -1,0 +1,104 @@
+{% import "../macros.njk" as m %}
+{% set catalog = (readFile('../release-catalog.json') | fromJson) -%}
+{% set service_def = catalog.services.openwebui -%}
+
+{# ═════════════════════════════════════════════════════════════════════════ #}
+{# OPENWEBUI CONTAINER - Using Macros for Clean, DRY Code                    #}
+{# Compare this to the old template - much cleaner!                          #}
+{# ═════════════════════════════════════════════════════════════════════════ #}
+
+{% set service = infrastructure.services.openwebui %}
+{% set network = infrastructure.network %}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# {{ service_def.name }} v{{ service_def.version }}
+# Release: {{ catalog.release.version }}
+# Image: {{ service_def.image }}
+# {{ service_def.notes }}
+# ═════════════════════════════════════════════════════════════════════════════
+
+{# Use macro for unit section - auto-generates all dependencies #}
+{{ m.unitSection(service, network.name, service.requires) }}
+
+{# Conditional dependencies based on enabled features #}
+{% if openwebui.providers.web_search_engine == "searxng" %}
+After=searxng.service
+Wants=searxng.service
+{% endif %}
+
+{% if openwebui.providers.content_extraction == "tika" %}
+After=tika.service
+Wants=tika.service
+{% endif %}
+
+{% if openwebui.features.code_execution %}
+After=jupyter.service
+Wants=jupyter.service
+{% endif %}
+
+{% if openwebui.features.speech_to_text %}
+After=whisper.service
+Wants=whisper.service
+{% endif %}
+
+[Container]
+Image={{ service_def.image }}
+AutoUpdate=registry
+ContainerName={{ service.container_name }}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🌐 NETWORK
+# ═════════════════════════════════════════════════════════════════════════════
+Network={{ network.name }}.network
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 📍 PUBLISHED PORT - Using macro
+# ═════════════════════════════════════════════════════════════════════════════
+{{ m.publishPort(service) }}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 💾 VOLUME - Using macro
+# ═════════════════════════════════════════════════════════════════════════════
+{{ m.volumeMount(service.volume, "/app/backend/data") }}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🔐 ENVIRONMENT - Loaded from dedicated env file
+# ═════════════════════════════════════════════════════════════════════════════
+EnvironmentFile=%h/.config/containers/systemd/openwebui/openwebui.env
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🔧 HEALTH CHECK - Using macro
+# ═════════════════════════════════════════════════════════════════════════════
+{{ m.healthCheckWget(service.port, "/health") }}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🚀 SERVICE - Using macro
+# ═════════════════════════════════════════════════════════════════════════════
+{{ m.serviceSection(timeout=openwebui.service.timeout_start_sec) }}
+
+[Install]
+# No WantedBy - dependencies via After/Requires
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 📝 ARCHITECTURE NOTES
+# ═════════════════════════════════════════════════════════════════════════════
+#
+# DEPENDENCIES:
+#   - openwebui_postgres (database)
+#   - openwebui_redis (cache and websockets)
+#   - litellm (LLM backend)
+#   - Optional: searxng, tika, jupyter, whisper (feature-dependent)
+#
+# FEATURES ENABLED:
+{% for key, value in openwebui.features %}
+{%- if value %}
+#   ✓ {{ key }}
+{% endif -%}
+{% endfor %}
+#
+# PROVIDERS:
+{% for key, value in openwebui.providers %}
+#   → {{ key }}: {{ value }}
+{% endfor %}
+#
+# ═════════════════════════════════════════════════════════════════════════════

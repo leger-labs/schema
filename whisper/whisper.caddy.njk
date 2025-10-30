@@ -1,0 +1,7 @@
+{% import "macros.njk" as m -%}
+{% set service = infrastructure.services.whisper -%}
+# ─────────────────────────────────────────────────────────────────────────────
+# {{ service.description }}
+# ─────────────────────────────────────────────────────────────────────────────
+
+{{ m.reverseProxy(service, tailscale.full_hostname) }}

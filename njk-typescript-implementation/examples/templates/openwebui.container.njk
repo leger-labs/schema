@@ -1,0 +1,46 @@
+[Unit]
+Description={{ description | default(service_name + ' service') }}
+After=network-online.target {{ network }}.network.service
+Requires={{ network }}.network.service
+{% if requires and requires.length > 0 -%}
+Wants={% for dep in requires %}{{ dep }}.service {% endfor %}
+{% endif -%}
+
+[Container]
+Image={{ image }}
+AutoUpdate=registry
+ContainerName={{ container_name }}
+{%- if hostname %}
+HostName={{ hostname }}
+{%- endif %}
+Network={{ network }}.network
+
+{%- if published_port != null %}
+PublishPort={{ bind | default('0.0.0.0') }}:{{ published_port }}:{{ port }}
+{%- endif %}
+
+{%- for volume in volumes %}
+Volume={{ volume.name }}:{{ volume.mount_path }}:{{ volume.selinux_label | default('Z') }}
+{%- endfor %}
+
+{%- for key, value in env %}
+Environment={{ key }}={{ value | boolstring }}
+{%- endfor %}
+
+{%- if healthcheck %}
+HealthCmd={{ healthcheck.cmd }}
+HealthInterval={{ healthcheck.interval | default('30s') }}
+HealthTimeout={{ healthcheck.timeout | default('5s') }}
+HealthRetries={{ healthcheck.retries | default(3) }}
+HealthStartPeriod={{ healthcheck.start_period | default('10s') }}
+{%- endif %}
+
+[Service]
+Slice=llm.slice
+TimeoutStartSec=900
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=scroll-session.target
+PartOf=scroll-session.target

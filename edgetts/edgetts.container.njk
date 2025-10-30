@@ -1,0 +1,86 @@
+{% import "../macros.njk" as m -%}
+{% set catalog = (readFile('../release-catalog.json') | fromJson) -%}
+{% set service_def = catalog.services.edgetts -%}
+# ═════════════════════════════════════════════════════════════════════════════
+# 🔊 {{ service_def.name }} v{{ service_def.version }}
+# Release: {{ catalog.release.version }}
+# Image: {{ service_def.image }}
+# {{ service_def.notes }}
+# ═════════════════════════════════════════════════════════════════════════════
+
+[Unit]
+Description={{ infrastructure.services.edgetts.description }}
+After=network-online.target {{ infrastructure.network.name }}.network.service
+Requires={{ infrastructure.network.name }}.network.service
+
+[Container]
+Image={{ service_def.image }}
+AutoUpdate=registry
+ContainerName={{ infrastructure.services.edgetts.container_name }}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🌐 NETWORK
+# ═════════════════════════════════════════════════════════════════════════════
+Network={{ infrastructure.network.name }}.network
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 📍 PUBLISHED PORT (for OpenWebUI to access)
+# ═════════════════════════════════════════════════════════════════════════════
+{{ m.publishPort(infrastructure.services.edgetts) }}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 💾 VOLUME (for caching voice models)
+# ═════════════════════════════════════════════════════════════════════════════
+{{ m.volumeMount(infrastructure.services.edgetts.volume, "/data") }}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🌍 ENVIRONMENT - Auto-generated from configuration
+# ═════════════════════════════════════════════════════════════════════════════
+
+# Default response format
+Environment=DEFAULT_RESPONSE_FORMAT={{ edgetts.response_format }}
+
+# Speech speed (0.5 = half speed, 2.0 = double speed)
+Environment=DEFAULT_SPEED={{ edgetts.speed }}
+
+# Default voice (Microsoft Edge neural voice)
+Environment=DEFAULT_VOICE={{ edgetts.voice }}
+
+# Server configuration
+Environment=PORT={{ infrastructure.services.edgetts.port }}
+Environment=HOST=0.0.0.0
+
+# Logging
+Environment=LOG_LEVEL={{ edgetts.log_level }}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🔧 HEALTH CHECK
+# ═════════════════════════════════════════════════════════════════════════════
+
+# Primary health check - service responsiveness
+{{ m.healthCheckWget(infrastructure.services.edgetts.port, "/health") }}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🚀 SERVICE
+# ═════════════════════════════════════════════════════════════════════════════
+{{ m.serviceSection(timeout=300) }}
+
+# Startup verification
+ExecStartPost=/bin/sh -c '\
+  echo "Edge-TTS: Waiting for service to be ready..."; \
+  for i in $(seq 1 30); do \
+    if wget --no-verbose --tries=1 --spider --timeout=2 http://localhost:{{ infrastructure.services.edgetts.port }}/health 2>/dev/null; then \
+      echo "Edge-TTS: ✓ Service health check passed"; \
+      if wget --no-verbose --tries=1 --spider --timeout=2 http://localhost:{{ infrastructure.services.edgetts.port }}/v1/voices 2>/dev/null; then \
+        echo "Edge-TTS: ✓ Voice API available"; \
+        echo "Edge-TTS: Service ready at http://localhost:{{ infrastructure.services.edgetts.port }}"; \
+        exit 0; \
+      fi; \
+    fi; \
+    sleep 1; \
+  done; \
+  echo "Edge-TTS: ⚠ Service started but verification incomplete (will retry on first use)"; \
+  exit 0'
+
+[Install]
+# No WantedBy - dependencies via After/Requires

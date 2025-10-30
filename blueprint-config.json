@@ -1,0 +1,561 @@
+{
+  "user": {
+    "name": "mecattaf",
+    "email": "thomas@mecattaf.dev"
+  },
+  "system": {
+    "hostname": "blueprint",
+    "os": "linux",
+    "timezone": "America/New_York"
+  },
+  "tailscale": {
+    "hostname": "blueprint",
+    "tag": "tag:blueprint",
+    "tailnet": "tail8dd1.ts.net",
+    "full_hostname": "blueprint.tail8dd1.ts.net",
+    "oauth_client_id": "${TAILSCALE_OAUTH_CLIENT_ID}",
+    "oauth_client_secret": "${TAILSCALE_OAUTH_CLIENT_SECRET}"
+  },
+  "github": {
+    "git_protocol": "https",
+    "user": "mecattaf",
+    "cli_pat": "${GITHUB_CLI_PAT}"
+  },
+  "infrastructure": {
+    "network": {
+      "name": "llm",
+      "subnet": "10.89.0.0/24",
+      "gateway": "10.89.0.1"
+    },
+    "services": {
+      "litellm_postgres": {
+        "hostname": "litellm-postgres",
+        "container_name": "litellm-postgres",
+        "port": 5432,
+        "published_port": null,
+        "image": "docker.io/pgvector/pgvector:pg16",
+        "db_name": "litellm",
+        "db_user": "litellm",
+        "volume": "litellm-postgres.volume",
+        "enabled": true
+      },
+      "litellm_redis": {
+        "hostname": "litellm-redis",
+        "container_name": "litellm-redis",
+        "port": 6379,
+        "published_port": null,
+        "image": "docker.io/redis:latest",
+        "volume": "litellm-redis.volume",
+        "enabled": true,
+        "requires": []
+      },
+      "litellm": {
+        "hostname": "litellm",
+        "container_name": "litellm",
+        "port": 4000,
+        "published_port": 4000,
+        "image": "ghcr.io/berriai/litellm:main-stable",
+        "external_subdomain": "llm",
+        "requires": ["litellm_postgres", "litellm_redis"],
+        "enabled": true,
+        "websocket": false,
+        "description": "LLM Proxy Service",
+        "config_file": "litellm/litellm.yaml"
+      },
+      "openwebui_postgres": {
+        "hostname": "openwebui-postgres",
+        "container_name": "openwebui-postgres",
+        "port": 5432,
+        "published_port": null,
+        "image": "docker.io/pgvector/pgvector:pg16",
+        "db_name": "openwebui",
+        "db_user": "openwebui",
+        "volume": "openwebui-postgres.volume",
+        "enabled": true
+      },
+      "openwebui_redis": {
+        "hostname": "openwebui-redis",
+        "container_name": "openwebui-redis",
+        "port": 6379,
+        "published_port": null,
+        "image": "docker.io/redis:latest",
+        "volume": "openwebui-redis.volume",
+        "enabled": true
+      },
+      "openwebui": {
+        "hostname": "openwebui",
+        "container_name": "openwebui",
+        "port": 8080,
+        "published_port": 3000,
+        "image": "ghcr.io/open-webui/open-webui:main",
+        "external_subdomain": "ai",
+        "requires": ["openwebui_postgres", "openwebui_redis", "litellm"],
+        "enabled": true,
+        "websocket": true,
+        "description": "Open WebUI Chat Interface",
+        "env_file": "openwebui/openwebui.env",
+        "volume": "openwebui.volume"
+      },
+      "searxng_redis": {
+        "hostname": "searxng-redis",
+        "container_name": "searxng-redis",
+        "port": 6379,
+        "published_port": null,
+        "image": "docker.io/redis:latest",
+        "volume": "searxng-redis.volume",
+        "enabled_by": ["openwebui.providers.web_search_engine == 'searxng'"]
+      },
+      "searxng": {
+        "hostname": "searxng",
+        "container_name": "searxng",
+        "port": 8080,
+        "published_port": 8888,
+        "image": "docker.io/searxng/searxng:latest",
+        "external_subdomain": "search",
+        "enabled_by": ["openwebui.providers.web_search_engine == 'searxng'"],
+        "requires": ["searxng_redis"],
+        "websocket": false,
+        "description": "SearXNG Meta Search Engine",
+        "volume": "searxng.volume"
+      },
+      "tika": {
+        "hostname": "tika",
+        "container_name": "tika",
+        "port": 9998,
+        "published_port": null,
+        "image": "docker.io/apache/tika:latest-full",
+        "enabled_by": ["openwebui.providers.content_extraction == 'tika'"],
+        "websocket": false,
+        "description": "Apache Tika Content Extraction",
+        "heap_size": "8g"
+      },
+      "whisper": {
+        "hostname": "whisper",
+        "container_name": "whisper",
+        "port": 8000,
+        "published_port": 8765,
+        "bind": "127.0.0.1",
+        "image": "docker.io/fedirz/faster-whisper-server:latest-cpu",
+        "external_subdomain": "whisper",
+        "enabled_by": ["openwebui.features.speech_to_text"],
+        "websocket": false,
+        "description": "Whisper Speech-to-Text Service",
+        "volume": "whisper-cache.volume"
+      },
+      "edgetts": {
+        "hostname": "edgetts",
+        "container_name": "edgetts",
+        "port": 5050,
+        "published_port": 5050,
+        "bind": "127.0.0.1",
+        "image": "ghcr.io/traefik/parakeet:latest",
+        "external_subdomain": "tts",
+        "enabled_by": ["openwebui.features.text_to_speech"],
+        "websocket": false,
+        "description": "Edge-TTS Text-to-Speech Service",
+        "volume": "edgetts-cache.volume"
+      },
+      "jupyter": {
+        "hostname": "jupyter",
+        "container_name": "jupyter",
+        "port": 8888,
+        "published_port": 8889,
+        "bind": "127.0.0.1",
+        "image": "localhost/blueprint-jupyter:latest",
+        "external_subdomain": "jupyter",
+        "enabled_by": ["openwebui.features.code_execution"],
+        "requires": ["litellm"],
+        "websocket": true,
+        "description": "Blueprint Jupyter Lab - AI Code Interpreter",
+        "volume": "jupyter.volume",
+        "workspace": "/home/jovyan/blueprint-workspace"
+      },
+      "llama_swap": {
+        "hostname": "llama-swap",
+        "container_name": "llama-swap",
+        "port": 8080,
+        "published_port": 9292,
+        "bind": "127.0.0.1",
+        "image": "ghcr.io/mostlygeek/llama-swap:cpu",
+        "external_subdomain": "llama-swap",
+        "websocket": true,
+        "enabled": true,
+        "volume": "llama-swap.volume",
+        "description": "Local LLM Model Router"
+      },
+      "qdrant": {
+        "hostname": "qdrant",
+        "container_name": "qdrant",
+        "port": 6333,
+        "grpc_port": 6334,
+        "published_port": 6333,
+        "image": "docker.io/qdrant/qdrant:latest",
+        "external_subdomain": "qdrant",
+        "enabled_by": ["openwebui.providers.vector_db == 'qdrant'"],
+        "websocket": false,
+        "description": "Qdrant Vector Database",
+        "volume": "qdrant.volume"
+      },
+      "cockpit": {
+        "hostname": "blueprint",
+        "container_name": "cockpit-ws",
+        "port": 9090,
+        "published_port": 9090,
+        "bind": "127.0.0.1",
+        "image": "quay.io/cockpit/ws:latest",
+        "external_subdomain": "",
+        "enabled": true,
+        "websocket": true,
+        "description": "System Management Dashboard"
+      },
+      "mcp_context_forge_postgres": {
+        "hostname": "mcp-context-forge-postgres",
+        "container_name": "mcp-context-forge-postgres",
+        "port": 5432,
+        "published_port": null,
+        "image": "docker.io/postgres:17",
+        "db_name": "mcp",
+        "db_user": "mcp",
+        "volume": "mcp-context-forge-postgres.volume",
+        "enabled": true
+      },
+      "mcp_context_forge": {
+        "hostname": "mcp-context-forge",
+        "container_name": "mcp-context-forge",
+        "port": 4444,
+        "published_port": 4444,
+        "bind": "127.0.0.1",
+        "image": "ghcr.io/ibm/mcp-context-forge:0.8.0",
+        "external_subdomain": "mcp",
+        "enabled": true,
+        "websocket": true,
+        "description": "MCP Context Forge - Enterprise Model Context Protocol Gateway",
+        "requires": ["mcp_context_forge_postgres"],
+        "data_dir": "%h/.local/share/mcp-context-forge",
+        "config_dir": "%h/.config/mcp-context-forge",
+        "database": "postgresql",
+        "catalog_enabled": true,
+        "ui_enabled": true,
+        "admin_api_enabled": true,
+        "auth_required": true,
+        "admin_email": "admin@example.com",
+        "admin_name": "Platform Administrator",
+        "jwt_algorithm": "HS256",
+        "redis_enabled": false,
+        "federation_enabled": true,
+        "a2a_enabled": true,
+        "llmchat_enabled": false,
+        "observability_enabled": false,
+        "log_level": "INFO",
+        "environment": "production",
+        "secure_cookies": true
+      },
+      "comfyui": {
+        "hostname": "comfyui",
+        "container_name": "comfyui",
+        "port": 8188,
+        "published_port": 8188,
+        "bind": "127.0.0.1",
+        "image": "ghcr.io/ai-dock/comfyui:latest",
+        "external_subdomain": "comfy",
+        "enabled_by": ["openwebui.features.image_generation"],
+        "websocket": true,
+        "description": "ComfyUI - Stable Diffusion Workflow Engine",
+        "volume": "comfyui.volume",
+        "models_volume": "comfyui-models.volume",
+        "workspace": "/workspace"
+      }
+    }
+  },
+  "secrets": {
+    "api_keys": {
+      "litellm_master": "sk-litellm-local",
+      "openwebui_secret": "sk-openwebui-local",
+      "jupyter_token": "sk-jupyter-local"
+    },
+    "llm_providers": {
+      "openai": "${OPENAI_API_KEY}",
+      "anthropic": "${ANTHROPIC_API_KEY}",
+      "gemini": "${GEMINI_API_KEY}",
+      "groq": "${GROQ_API_KEY}",
+      "openrouter": "${OPENROUTER_API_KEY}"
+    },
+    "search_providers": {
+      "tavily": "${TAVILY_API_KEY}"
+    },
+    "audio_providers": {
+      "elevenlabs": "${ELEVENLABS_API_KEY}",
+      "deepgram": "${DEEPGRAM_API_KEY}"
+    },
+    "mcp_context_forge": {
+      "jwt_secret_key": "${MCP_JWT_SECRET_KEY}",
+      "admin_password": "${MCP_ADMIN_PASSWORD}",
+      "auth_encryption_secret": "${MCP_AUTH_ENCRYPTION_SECRET}"
+    }
+  },
+  "litellm": {
+    "database_url": "postgresql://litellm@litellm-postgres:5432/litellm",
+    "redis_url": "redis://litellm-redis:6379/0",
+    "master_key": "${LITELLM_MASTER_KEY}",
+    "drop_params": true,
+    "log_level": "INFO",
+    "models": [
+      {
+        "name": "gpt-5",
+        "display_name": "GPT-5 (Flagship)",
+        "provider": "openai",
+        "full_model_id": "gpt-5-2025-08-07",
+        "api_key": "${OPENAI_API_KEY}",
+        "enabled": true,
+        "description": "OpenAI's flagship GPT-5 model",
+        "context_window": 400000
+      },
+      {
+        "name": "claude-sonnet-4-5",
+        "display_name": "Claude Sonnet 4.5",
+        "provider": "anthropic",
+        "full_model_id": "claude-sonnet-4-5-20250929",
+        "api_key": "${ANTHROPIC_API_KEY}",
+        "enabled": true,
+        "description": "Anthropic's most advanced Sonnet model",
+        "context_window": 200000
+      },
+      {
+        "name": "gemini-2.5-flash",
+        "display_name": "Gemini 2.5 Flash",
+        "provider": "gemini",
+        "api_key": "${GEMINI_API_KEY}",
+        "enabled": true,
+        "description": "Google's fast multimodal model",
+        "context_window": 1048576
+      }
+    ]
+  },
+  "local_inference": {
+    "enabled": true,
+    "defaults": {
+      "runtime": "llama.cpp",
+      "backend": "vulkan",
+      "ctx_size": 8192,
+      "ngl": 999,
+      "temp": 0.7,
+      "threads": 32,
+      "cache_reuse": 256,
+      "auto_unload": true,
+      "container_image": "quay.io/ramalama/ramalama:latest",
+      "health_check_timeout": 3600,
+      "log_level": "info",
+      "metrics_max_in_memory": 1000,
+      "start_port": 10001
+    },
+    "groups": {
+      "heavy": {
+        "swap": true,
+        "description": "Primary large models (one active at a time)",
+        "members": ["gpt-oss-20b", "gpt-oss-120b"]
+      },
+      "task": {
+        "swap": false,
+        "description": "Always-loaded task models",
+        "members": ["qwen3-0.6b", "qwen3-4b"]
+      }
+    },
+    "models": {
+      "gpt_oss_20b": {
+        "name": "gpt-oss-20b",
+        "display_name": "GPT-OSS 20B",
+        "description": "OpenAI's 20B parameter model",
+        "model_uri": "huggingface://openai/gpt-oss-20b-GGUF/gpt-oss-20b-q4_k_m.gguf",
+        "quantization": "Q4_K_M",
+        "ram_required_gb": 16,
+        "context_length": 8192,
+        "ctx_size": 8192,
+        "ttl": 600,
+        "group": "heavy",
+        "vulkan_driver": "RADV",
+        "flash_attn": true,
+        "enabled": true
+      },
+      "qwen3_0_6b": {
+        "name": "qwen3-0.6b",
+        "display_name": "Qwen3 0.6B",
+        "description": "Ultra-fast task model",
+        "model_uri": "huggingface://Qwen/Qwen3-0.6B-GGUF/qwen3-0.6b-q4_k_m.gguf",
+        "quantization": "Q4_K_M",
+        "ram_required_gb": 1,
+        "context_length": 32768,
+        "ctx_size": 4096,
+        "ttl": 0,
+        "group": "task",
+        "vulkan_driver": "RADV",
+        "flash_attn": true,
+        "enabled": true
+      }
+    }
+  },
+  "whisper": {
+    "cache_dir": "${HOME}/.cache/huggingface",
+    "model": "large-v3",
+    "language": "en",
+    "beam_size": 5,
+    "compute_type": "auto",
+    "device": "auto"
+  },
+  "edgetts": {
+    "response_format": "mp3",
+    "speed": "1.0",
+    "voice": "en-AU-NatashaNeural",
+    "log_level": "info",
+    "models": {
+      "tts-1": {
+        "alloy": "en-US-AriaNeural",
+        "echo": "en-US-GuyNeural",
+        "fable": "en-GB-RyanNeural",
+        "onyx": "en-US-DavisNeural",
+        "nova": "en-US-JennyNeural",
+        "shimmer": "en-US-AmberNeural"
+      }
+    }
+  },
+  "openwebui": {
+    "features": {
+      "rag": true,
+      "web_search": true,
+      "image_generation": false,
+      "speech_to_text": true,
+      "text_to_speech": true,
+      "code_execution": true,
+      "code_interpreter": true,
+      "google_drive": false,
+      "onedrive": false,
+      "oauth_signup": false,
+      "ldap": false,
+      "title_generation": false,
+      "autocomplete_generation": false,
+      "tags_generation": false,
+      "websocket_support": true,
+      "direct_connections": true
+    },
+    "providers": {
+      "vector_db": "pgvector",
+      "rag_embedding": "openai",
+      "content_extraction": "tika",
+      "text_splitter": "character",
+      "web_search_engine": "searxng",
+      "web_loader": "requests",
+      "image_engine": "openai",
+      "stt_engine": "openai",
+      "tts_engine": "openai",
+      "code_execution_engine": "jupyter",
+      "code_interpreter_engine": "jupyter",
+      "storage_provider": "",
+      "auth_provider": "local"
+    },
+    "vector_db_config": {
+      "pgvector": {
+        "db_url": "postgresql://openwebui@openwebui-postgres:5432/openwebui",
+        "vector_dimension": 384
+      }
+    },
+    "rag_embedding_config": {
+      "openai": {
+        "base_url": "http://litellm:4000/v1",
+        "api_key": "sk-litellm-local",
+        "model": "qwen3-embedding-8b"
+      }
+    },
+    "content_extraction_config": {
+      "tika": {
+        "server_url": "http://tika:9998"
+      }
+    },
+    "web_search_config": {
+      "searxng": {
+        "query_url": "http://searxng:8080/search?q=<query>&format=json"
+      }
+    },
+    "audio_config": {
+      "stt": {
+        "openai": {
+          "base_url": "http://whisper:8000/v1",
+          "api_key": "sk-whisper-local",
+          "model": "whisper-1"
+        }
+      },
+      "tts": {
+        "openai": {
+          "base_url": "http://edgetts:5050/v1",
+          "api_key": "sk-edgetts-local",
+          "model": "tts-1",
+          "voice": "en-US-AriaNeural"
+        }
+      }
+    },
+    "code_execution_config": {
+      "jupyter": {
+        "url": "http://jupyter:8888",
+        "auth": "none",
+        "token": "",
+        "timeout": 60
+      }
+    },
+    "general": {
+      "openai_api_base_url": "http://litellm:4000/v1",
+      "openai_api_key": "sk-litellm-local",
+      "webui_secret_key": "sk-openwebui-local",
+      "webui_name": "Leger AI",
+      "custom_name": "Blueprint LLM Stack",
+      "webui_auth": false,
+      "enable_signup": false,
+      "default_user_role": "user",
+      "log_level": "info",
+      "database_url": "postgresql://openwebui@openwebui-postgres:5432/openwebui",
+      "rag_top_k": 3,
+      "chunk_size": 1500,
+      "chunk_overlap": 100,
+      "task_models": {
+        "title_generation": "qwen3-0.6b",
+        "tags_generation": "qwen3-4b",
+        "query_generation": "qwen3-4b"
+      }
+    },
+    "service": {
+      "timeout_start_sec": 900,
+      "restart": "on-failure",
+      "restart_sec": 10
+    }
+  },
+  "searxng": {
+    "redis_url": "redis://searxng-redis:6379/0",
+    "base_url": "https://search.blueprint.tail8dd1.ts.net",
+    "safe_search": 0,
+    "max_page": 5,
+    "autocomplete": "duckduckgo",
+    "engines": [
+      {"name": "duckduckgo", "enabled": true},
+      {"name": "google", "enabled": true},
+      {"name": "wikipedia", "enabled": true},
+      {"name": "github", "enabled": true}
+    ]
+  },
+  "caddy": {
+    "auto_https": "off"
+  },
+  "comfyui": {
+    "workspace": "/workspace",
+    "auto_update": false,
+    "web_enable_auth": false,
+    "default_model": "flux1-schnell.safetensors",
+    "default_vae": "ae.safetensors",
+    "default_clip_1": "t5xxl_fp16.safetensors",
+    "default_clip_2": "clip_l.safetensors",
+    "hf_token": "${HUGGINGFACE_TOKEN}",
+    "civitai_token": "${CIVITAI_TOKEN}",
+    "args": "",
+    "log_level": "info",
+    "integration": {
+      "openwebui_base_url": "http://comfyui:8188",
+      "enabled": true
+    }
+  }
+}

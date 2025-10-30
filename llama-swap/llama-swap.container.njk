@@ -1,0 +1,74 @@
+{% import "../macros.njk" as m -%}
+{% set catalog = (readFile('../release-catalog.json') | fromJson) -%}
+{% set service_def = catalog.services.llama_swap -%}
+# ═════════════════════════════════════════════════════════════════════════════
+# 🔄 {{ service_def.name }} v{{ service_def.version }}
+# Release: {{ catalog.release.version }}
+# {{ service_def.notes }}
+# ═════════════════════════════════════════════════════════════════════════════
+
+[Unit]
+Description={{ infrastructure.services.llama_swap.description }}
+After=network-online.target {{ infrastructure.network.name }}.network.service
+Requires={{ infrastructure.network.name }}.network.service
+
+[Container]
+Image={{ service_def.image }}
+AutoUpdate=registry
+ContainerName={{ infrastructure.services.llama_swap.container_name }}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🌐 NETWORK
+# ═════════════════════════════════════════════════════════════════════════════
+Network={{ infrastructure.network.name }}.network
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 📍 PUBLISHED PORT (for LiteLLM and Caddy to access)
+# ═════════════════════════════════════════════════════════════════════════════
+{{ m.publishPort(infrastructure.services.llama_swap) }}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 💾 VOLUMES
+# ═════════════════════════════════════════════════════════════════════════════
+
+# Podman socket - allows llama-swap to spawn ramalama containers
+Volume=/run/user/%U/podman/podman.sock:/run/podman/podman.sock:Z
+
+# RamaLama model cache - read-only access to downloaded models
+{{ m.hostMount("${HOME}/.local/share/ramalama", "/root/.local/share/ramalama", readonly=true) }}
+
+# llama-swap configuration file
+{{ m.hostMount("%h/.config/containers/systemd/llama-swap/config.yaml", "/app/config.yaml", readonly=true) }}
+
+# Persistent data volume for llama-swap state
+{{ m.volumeMount(infrastructure.services.llama_swap.volume, "/app/data") }}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🔐 SECURITY
+# ═════════════════════════════════════════════════════════════════════════════
+
+# Allow container to control podman (spawn ramalama containers)
+PodmanArgs=--security-opt=label=disable
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🌍 ENVIRONMENT
+# ═════════════════════════════════════════════════════════════════════════════
+
+# Podman socket location (for spawning containers)
+Environment=PODMAN_SOCK=unix:///run/podman/podman.sock
+
+# Home directory for ramalama
+Environment=HOME=/root
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🔧 HEALTH CHECK
+# ═════════════════════════════════════════════════════════════════════════════
+{{ m.healthCheck(infrastructure.services.llama_swap.port, "/health") | replace("30s", "10s") }}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🚀 SERVICE
+# ═════════════════════════════════════════════════════════════════════════════
+{{ m.serviceSection(timeout=300) }}
+
+[Install]
+# No WantedBy - dependencies via After/Requires

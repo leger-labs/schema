@@ -1,0 +1,46 @@
+{% import "../../macros.njk" as m -%}
+{% set catalog = (readFile('../../release-catalog.json') | fromJson) -%}
+{% set service_def = catalog.services.mcp_context_forge_postgres -%}
+# ═════════════════════════════════════════════════════════════════════════════
+# {{ service_def.name }} v{{ service_def.version }}
+# Release: {{ catalog.release.version }}
+# {{ service_def.notes }}
+# ═════════════════════════════════════════════════════════════════════════════
+
+[Unit]
+Description=PostgreSQL database for MCP Context Forge
+After=network-online.target {{ infrastructure.network.name }}.network.service
+Requires={{ infrastructure.network.name }}.network.service
+
+[Container]
+Image={{ service_def.image }}
+AutoUpdate=registry
+ContainerName={{ infrastructure.services.mcp_context_forge_postgres.container_name }}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🌐 NETWORK - Internal only, no published ports
+# ═════════════════════════════════════════════════════════════════════════════
+Network={{ infrastructure.network.name }}.network
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🔐 ENVIRONMENT - No password needed (internal only, trust auth)
+# ═════════════════════════════════════════════════════════════════════════════
+{{ m.postgresEnv(infrastructure.services.mcp_context_forge_postgres.db_name, infrastructure.services.mcp_context_forge_postgres.db_user, enable_vector=false) }}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 💾 VOLUME
+# ═════════════════════════════════════════════════════════════════════════════
+{{ m.volumeMount(infrastructure.services.mcp_context_forge_postgres.volume, "/var/lib/postgresql/data") }}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🔧 HEALTH CHECK
+# ═════════════════════════════════════════════════════════════════════════════
+{{ m.postgresHealthCheck(infrastructure.services.mcp_context_forge_postgres.db_user) }}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🚀 SERVICE
+# ═════════════════════════════════════════════════════════════════════════════
+{{ m.serviceSection(timeout=900) }}
+
+[Install]
+# No WantedBy - dependencies via After/Requires

@@ -1,0 +1,33 @@
+{% set service = infrastructure.services.comfyui %}
+{% if service.enabled_by and openwebui.features.image_generation and service.external_subdomain %}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# {{ service.description }}
+# ─────────────────────────────────────────────────────────────────────────────
+
+https://{{ service.external_subdomain }}.{{ tailscale.full_hostname }} {
+    reverse_proxy {{ service.hostname }}:{{ service.port }} {
+        # Standard headers
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+        header_up X-Forwarded-Host {host}
+
+        # WebSocket support (required for ComfyUI real-time updates)
+        header_up Connection {>Connection}
+        header_up Upgrade {>Upgrade}
+    }
+
+    # Logging
+    log {
+        output file /var/log/caddy/comfyui.log {
+            roll_size 50mb
+            roll_keep 3
+        }
+        format console
+        level ERROR
+    }
+}
+
+{% endif %}

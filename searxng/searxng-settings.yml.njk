@@ -1,0 +1,156 @@
+# ═════════════════════════════════════════════════════════════════════════════
+# 🔍 SEARXNG SETTINGS
+# Generated from blueprint-config.json → searxng section
+# ═════════════════════════════════════════════════════════════════════════════
+#
+# This configuration customizes SearXNG for use with Open WebUI
+# Base configuration inherited from SearXNG defaults
+#
+# Documentation: https://docs.searxng.org/admin/settings/
+# ═════════════════════════════════════════════════════════════════════════════
+
+# Use SearXNG default settings as base
+use_default_settings: true
+
+# Server configuration
+server:
+  # Secret key for session encryption
+  # IMPORTANT: Change this in production!
+  secret_key: "{{ secrets.searxng_secret | default('CHANGE_THIS_SECRET_KEY_IN_PRODUCTION') }}"
+
+  # Base URL for reverse proxy
+  base_url: "{{ searxng.base_url }}"
+
+  # Bind to all interfaces (container context)
+  bind_address: "0.0.0.0"
+  port: {{ infrastructure.services.searxng.port }}
+
+# Redis cache configuration
+redis:
+  url: {{ searxng.redis_url }}
+
+# Search behavior
+search:
+  # Safe search level: 0=off, 1=moderate, 2=strict
+  safe_search: {{ searxng.safe_search }}
+
+  # Autocomplete provider
+  autocomplete: "{{ searxng.autocomplete }}"
+
+  # Maximum number of result pages
+  max_page: {{ searxng.max_page }}
+
+  # Default language
+  default_lang: "en"
+
+  # Ban time for suspicious behavior (disabled for local use)
+  ban_time_on_fail: 0
+  max_ban_time_on_fail: 0
+
+# UI preferences
+ui:
+  # Default theme
+  default_theme: simple
+
+  # Show advanced settings
+  advanced_search: true
+
+  # Infinite scroll
+  infinite_scroll: true
+
+  # Query in title
+  query_in_title: true
+
+# Search engines configuration
+engines:
+{% for engine in searxng.engines %}
+  - name: {{ engine.name }}
+    disabled: {{ not engine.enabled | lower }}
+{% endfor %}
+
+# Enabled plugins
+enabled_plugins:
+  # Hostname plugin for multi-instance support
+  - 'Hash plugin'
+  # Self-information plugin
+  - 'Self Information'
+  # Tracker URL remover
+  - 'Tracker URL remover'
+
+# Disabled plugins (we don't need rate limiting for local use)
+disabled_plugins:
+  - 'Ahmia blacklist'
+
+# Outgoing request configuration
+outgoing:
+  # Request timeout in seconds
+  request_timeout: 3.0
+
+  # Maximum number of seconds to wait for connection
+  max_request_timeout: 10.0
+
+  # Enable HTTP/2
+  enable_http2: true
+
+  # User agents for requests
+  useragent_suffix: ""
+
+  # Respect robots.txt
+  robots_txt: false
+
+  # Connection pool size
+  pool_connections: 100
+  pool_maxsize: 10
+
+# Rate limiting (disabled for local instance)
+limiter:
+  # Disable all rate limiting for local use
+  enabled: false
+
+# Result formatting
+result_proxy:
+  # Proxy results through SearXNG (privacy)
+  url: null
+
+# DOI resolver
+doi_resolvers:
+  - https://doi.org/
+  - https://sci-hub.se/
+
+# Default categories
+categories_as_tabs:
+  general: true
+  images: true
+  videos: true
+  news: true
+  map: false
+  music: false
+  it: true
+  science: true
+  files: false
+  social_media: false
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 📝 CONFIGURATION NOTES
+# ═════════════════════════════════════════════════════════════════════════════
+#
+# ENABLED ENGINES:
+{% for engine in searxng.engines %}
+{% if engine.enabled %}
+#   ✓ {{ engine.name }}
+{% else %}
+#   ✗ {{ engine.name }} (disabled)
+{% endif %}
+{% endfor %}
+#
+# INTEGRATION:
+#   - Open WebUI uses: {{ openwebui.web_search_config.searxng.query_url }}
+#   - Redis cache: {{ searxng.redis_url }}
+#   - External access: {{ searxng.base_url }}
+#
+# PRIVACY:
+#   - Rate limiting: DISABLED (local instance)
+#   - Robots.txt: DISABLED (faster results)
+#   - Request timeout: 3s (fast responses)
+#
+# ═════════════════════════════════════════════════════════════════════════════
