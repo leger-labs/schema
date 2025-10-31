@@ -1,0 +1,702 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Leger Schema Additions - Agent 1",
+  "description": "Infrastructure and configuration additions for openwebui, qdrant, searxng, tika, whisper",
+  "version": "0.0.1",
+
+  "infrastructure": {
+    "type": "object",
+    "description": "Service infrastructure with defaults",
+    "properties": {
+      "openwebui": {
+        "type": "object",
+        "description": "Open WebUI LLM chat interface",
+        "properties": {
+          "container_name": {
+            "type": "string",
+            "default": "openwebui"
+          },
+          "hostname": {
+            "type": "string",
+            "default": "openwebui"
+          },
+          "port": {
+            "type": "integer",
+            "default": 8080,
+            "description": "Internal container port"
+          },
+          "published_port": {
+            "type": "integer",
+            "default": 3000,
+            "description": "Port exposed on host"
+          },
+          "bind_address": {
+            "type": "string",
+            "default": "127.0.0.1",
+            "description": "Host bind address"
+          },
+          "external_subdomain": {
+            "type": "string",
+            "default": "ai",
+            "description": "Tailscale subdomain for external access"
+          },
+          "volume": {
+            "type": "string",
+            "default": "openwebui.volume"
+          },
+          "description": {
+            "type": "string",
+            "default": "Open WebUI - LLM Chat Interface"
+          }
+        }
+      },
+
+      "openwebui_postgres": {
+        "type": "object",
+        "description": "PostgreSQL database for OpenWebUI",
+        "properties": {
+          "container_name": {
+            "type": "string",
+            "default": "openwebui-postgres"
+          },
+          "hostname": {
+            "type": "string",
+            "default": "openwebui-postgres"
+          },
+          "port": {
+            "type": "integer",
+            "default": 5432
+          },
+          "published_port": {
+            "type": ["integer", "null"],
+            "default": null,
+            "description": "Internal only, no published port"
+          },
+          "bind_address": {
+            "type": ["string", "null"],
+            "default": null
+          },
+          "volume": {
+            "type": "string",
+            "default": "openwebui-postgres.volume"
+          },
+          "db_name": {
+            "type": "string",
+            "default": "openwebui"
+          },
+          "db_user": {
+            "type": "string",
+            "default": "openwebui"
+          }
+        }
+      },
+
+      "openwebui_redis": {
+        "type": "object",
+        "description": "Redis cache for OpenWebUI",
+        "properties": {
+          "container_name": {
+            "type": "string",
+            "default": "openwebui-redis"
+          },
+          "hostname": {
+            "type": "string",
+            "default": "openwebui-redis"
+          },
+          "port": {
+            "type": "integer",
+            "default": 6379
+          },
+          "published_port": {
+            "type": ["integer", "null"],
+            "default": null
+          },
+          "bind_address": {
+            "type": ["string", "null"],
+            "default": null
+          },
+          "volume": {
+            "type": "string",
+            "default": "openwebui-redis.volume"
+          }
+        }
+      },
+
+      "qdrant": {
+        "type": "object",
+        "description": "Qdrant vector database",
+        "properties": {
+          "container_name": {
+            "type": "string",
+            "default": "qdrant"
+          },
+          "hostname": {
+            "type": "string",
+            "default": "qdrant"
+          },
+          "port": {
+            "type": "integer",
+            "default": 6333,
+            "description": "HTTP API port"
+          },
+          "published_port": {
+            "type": "integer",
+            "default": 6333,
+            "description": "Published for web UI access"
+          },
+          "bind_address": {
+            "type": "string",
+            "default": "127.0.0.1"
+          },
+          "external_subdomain": {
+            "type": "string",
+            "default": "qdrant",
+            "description": "Tailscale subdomain for web UI"
+          },
+          "volume": {
+            "type": "string",
+            "default": "qdrant.volume"
+          },
+          "description": {
+            "type": "string",
+            "default": "Qdrant Vector Database"
+          }
+        }
+      },
+
+      "searxng": {
+        "type": "object",
+        "description": "SearXNG meta-search engine",
+        "properties": {
+          "container_name": {
+            "type": "string",
+            "default": "searxng"
+          },
+          "hostname": {
+            "type": "string",
+            "default": "searxng"
+          },
+          "port": {
+            "type": "integer",
+            "default": 8080
+          },
+          "published_port": {
+            "type": "integer",
+            "default": 8080
+          },
+          "bind_address": {
+            "type": "string",
+            "default": "127.0.0.1"
+          },
+          "external_subdomain": {
+            "type": "string",
+            "default": "search"
+          },
+          "volume": {
+            "type": "string",
+            "default": "searxng.volume"
+          },
+          "description": {
+            "type": "string",
+            "default": "SearXNG Meta-Search Engine"
+          }
+        }
+      },
+
+      "searxng_redis": {
+        "type": "object",
+        "description": "Redis cache for SearXNG",
+        "properties": {
+          "container_name": {
+            "type": "string",
+            "default": "searxng-redis"
+          },
+          "hostname": {
+            "type": "string",
+            "default": "searxng-redis"
+          },
+          "port": {
+            "type": "integer",
+            "default": 6379
+          },
+          "published_port": {
+            "type": ["integer", "null"],
+            "default": null
+          },
+          "bind_address": {
+            "type": ["string", "null"],
+            "default": null
+          },
+          "volume": {
+            "type": "string",
+            "default": "searxng-redis.volume"
+          }
+        }
+      },
+
+      "tika": {
+        "type": "object",
+        "description": "Apache Tika document extraction service",
+        "properties": {
+          "container_name": {
+            "type": "string",
+            "default": "tika"
+          },
+          "hostname": {
+            "type": "string",
+            "default": "tika"
+          },
+          "port": {
+            "type": "integer",
+            "default": 9998
+          },
+          "published_port": {
+            "type": ["integer", "null"],
+            "default": null,
+            "description": "Internal service only"
+          },
+          "bind_address": {
+            "type": ["string", "null"],
+            "default": null
+          },
+          "heap_size": {
+            "type": "string",
+            "default": "2g",
+            "pattern": "^[0-9]+[mg]$",
+            "description": "JVM heap size (e.g., 2g, 4g)"
+          },
+          "description": {
+            "type": "string",
+            "default": "Apache Tika Document Extraction"
+          }
+        }
+      },
+
+      "whisper": {
+        "type": "object",
+        "description": "Faster Whisper STT service",
+        "properties": {
+          "container_name": {
+            "type": "string",
+            "default": "whisper"
+          },
+          "hostname": {
+            "type": "string",
+            "default": "whisper"
+          },
+          "port": {
+            "type": "integer",
+            "default": 9000
+          },
+          "published_port": {
+            "type": "integer",
+            "default": 9000
+          },
+          "bind_address": {
+            "type": "string",
+            "default": "127.0.0.1"
+          },
+          "external_subdomain": {
+            "type": "string",
+            "default": "whisper"
+          },
+          "description": {
+            "type": "string",
+            "default": "Faster Whisper STT Service"
+          }
+        }
+      }
+    }
+  },
+
+  "provider_config": {
+    "type": "object",
+    "description": "Provider-specific configuration fields",
+    "properties": {
+      "qdrant_url": {
+        "type": "string",
+        "title": "Qdrant URL",
+        "default": "http://qdrant:6333",
+        "format": "uri",
+        "description": "Qdrant server HTTP endpoint",
+        "x-depends-on": {
+          "providers.vector_db": "qdrant"
+        }
+      },
+      "qdrant_api_key": {
+        "type": "string",
+        "title": "Qdrant API Key",
+        "default": "",
+        "description": "Optional API key for Qdrant authentication",
+        "x-depends-on": {
+          "providers.vector_db": "qdrant"
+        },
+        "x-sensitive": true
+      },
+      "qdrant_grpc_port": {
+        "type": "integer",
+        "title": "Qdrant gRPC Port",
+        "default": 6334,
+        "description": "Port for gRPC communication",
+        "x-depends-on": {
+          "providers.vector_db": "qdrant"
+        }
+      },
+      "qdrant_prefer_grpc": {
+        "type": "boolean",
+        "title": "Prefer gRPC",
+        "default": false,
+        "description": "Use gRPC instead of HTTP for better performance",
+        "x-depends-on": {
+          "providers.vector_db": "qdrant"
+        }
+      },
+      "qdrant_on_disk": {
+        "type": "boolean",
+        "title": "Store on Disk",
+        "default": true,
+        "description": "Store vectors on disk instead of memory",
+        "x-depends-on": {
+          "providers.vector_db": "qdrant"
+        }
+      },
+
+      "searxng_query_url": {
+        "type": "string",
+        "title": "SearXNG Query URL",
+        "default": "http://searxng:8080/search?q=<query>",
+        "format": "uri",
+        "description": "SearXNG search endpoint",
+        "x-depends-on": {
+          "providers.web_search_engine": "searxng"
+        }
+      },
+      "searxng_base_url": {
+        "type": "string",
+        "title": "SearXNG Base URL",
+        "default": "https://search.{tailscale.full_hostname}",
+        "description": "Base URL for reverse proxy configuration",
+        "x-depends-on": {
+          "providers.web_search_engine": "searxng"
+        }
+      },
+      "searxng_safe_search": {
+        "type": "integer",
+        "title": "Safe Search Level",
+        "default": 0,
+        "enum": [0, 1, 2],
+        "description": "Safe search: 0=off, 1=moderate, 2=strict",
+        "x-depends-on": {
+          "providers.web_search_engine": "searxng"
+        }
+      },
+      "searxng_autocomplete": {
+        "type": "string",
+        "title": "Autocomplete Provider",
+        "default": "google",
+        "enum": ["google", "duckduckgo", "wikipedia", ""],
+        "description": "Autocomplete suggestion provider",
+        "x-depends-on": {
+          "providers.web_search_engine": "searxng"
+        }
+      },
+      "searxng_max_page": {
+        "type": "integer",
+        "title": "Maximum Pages",
+        "default": 10,
+        "minimum": 1,
+        "maximum": 50,
+        "description": "Maximum number of result pages",
+        "x-depends-on": {
+          "providers.web_search_engine": "searxng"
+        }
+      },
+
+      "tika_server_url": {
+        "type": "string",
+        "title": "Tika Server URL",
+        "default": "http://tika:9998",
+        "format": "uri",
+        "description": "Apache Tika server endpoint",
+        "x-depends-on": {
+          "providers.content_extraction": "tika"
+        }
+      },
+
+      "whisper_model": {
+        "type": "string",
+        "title": "Whisper Model",
+        "default": "base",
+        "enum": ["tiny", "base", "small", "medium", "large"],
+        "description": "Whisper model size (larger = more accurate, slower)",
+        "x-depends-on": {
+          "providers.stt_engine": "openai"
+        }
+      },
+      "whisper_language": {
+        "type": "string",
+        "title": "Whisper Language",
+        "default": "",
+        "description": "Target language (empty = auto-detect)",
+        "x-depends-on": {
+          "providers.stt_engine": "openai"
+        }
+      },
+      "whisper_beam_size": {
+        "type": "integer",
+        "title": "Beam Size",
+        "default": 5,
+        "minimum": 1,
+        "maximum": 10,
+        "description": "Beam search size for transcription",
+        "x-depends-on": {
+          "providers.stt_engine": "openai"
+        }
+      },
+      "whisper_compute_type": {
+        "type": "string",
+        "title": "Compute Type",
+        "default": "int8",
+        "enum": ["int8", "float16", "float32"],
+        "description": "Computation precision (int8 = faster, float32 = more accurate)",
+        "x-depends-on": {
+          "providers.stt_engine": "openai"
+        }
+      },
+      "whisper_device": {
+        "type": "string",
+        "title": "Device",
+        "default": "auto",
+        "enum": ["auto", "cpu", "cuda"],
+        "description": "Device to use for inference",
+        "x-depends-on": {
+          "providers.stt_engine": "openai"
+        }
+      },
+      "whisper_cache_dir": {
+        "type": "string",
+        "title": "Cache Directory",
+        "default": "/var/lib/whisper/cache",
+        "description": "Host directory for model cache",
+        "x-depends-on": {
+          "providers.stt_engine": "openai"
+        }
+      }
+    }
+  },
+
+  "secrets": {
+    "type": "object",
+    "description": "Secret template pointers (CLI injects actual values)",
+    "properties": {
+      "openwebui_secret_key": {
+        "type": "string",
+        "title": "OpenWebUI Secret Key",
+        "default": "{OPENWEBUI_SECRET_KEY}",
+        "description": "Session encryption key for OpenWebUI"
+      },
+      "openwebui_llm_api_key": {
+        "type": "string",
+        "title": "LLM API Key",
+        "default": "{OPENWEBUI_LLM_API_KEY}",
+        "description": "API key for LiteLLM proxy access"
+      },
+      "rag_embedding_api_key": {
+        "type": "string",
+        "title": "RAG Embedding API Key",
+        "default": "{RAG_EMBEDDING_API_KEY}",
+        "description": "API key for embedding service (if using OpenAI)",
+        "x-depends-on": {
+          "providers.rag_embedding": "openai"
+        }
+      },
+      "stt_api_key": {
+        "type": "string",
+        "title": "STT API Key",
+        "default": "{STT_API_KEY}",
+        "description": "API key for speech-to-text service",
+        "x-depends-on": {
+          "features.speech_to_text": true
+        }
+      },
+      "tts_api_key": {
+        "type": "string",
+        "title": "TTS API Key",
+        "default": "{TTS_API_KEY}",
+        "description": "API key for text-to-speech service",
+        "x-depends-on": {
+          "features.text_to_speech": true
+        }
+      },
+      "tavily_api_key": {
+        "type": "string",
+        "title": "Tavily API Key",
+        "default": "{TAVILY_API_KEY}",
+        "description": "API key for Tavily web search",
+        "x-depends-on": {
+          "providers.web_search_engine": "tavily"
+        }
+      },
+      "searxng_secret_key": {
+        "type": "string",
+        "title": "SearXNG Secret Key",
+        "default": "{SEARXNG_SECRET_KEY}",
+        "description": "Session encryption key for SearXNG",
+        "x-depends-on": {
+          "providers.web_search_engine": "searxng"
+        }
+      }
+    }
+  },
+
+  "advanced": {
+    "type": "object",
+    "description": "Advanced tuning parameters",
+    "properties": {
+      "rag_top_k": {
+        "type": "integer",
+        "title": "RAG Top K",
+        "default": 5,
+        "minimum": 1,
+        "maximum": 50,
+        "description": "Number of RAG results to retrieve",
+        "x-depends-on": {
+          "features.rag": true
+        }
+      },
+      "chunk_size": {
+        "type": "integer",
+        "title": "Chunk Size",
+        "default": 1500,
+        "minimum": 100,
+        "maximum": 10000,
+        "description": "Document chunk size for RAG",
+        "x-depends-on": {
+          "features.rag": true
+        }
+      },
+      "chunk_overlap": {
+        "type": "integer",
+        "title": "Chunk Overlap",
+        "default": 100,
+        "minimum": 0,
+        "maximum": 1000,
+        "description": "Overlap between chunks",
+        "x-depends-on": {
+          "features.rag": true
+        }
+      },
+      "openwebui_timeout_start": {
+        "type": "integer",
+        "title": "OpenWebUI Startup Timeout",
+        "default": 900,
+        "minimum": 60,
+        "maximum": 1800,
+        "description": "Seconds to wait for OpenWebUI to start"
+      },
+      "tika_heap_size": {
+        "type": "string",
+        "title": "Tika Heap Size",
+        "default": "2g",
+        "pattern": "^[0-9]+[mg]$",
+        "description": "JVM heap size for Tika (e.g., 2g, 4g)",
+        "x-depends-on": {
+          "providers.content_extraction": "tika"
+        }
+      }
+    }
+  },
+
+  "x-affects-services-map": {
+    "description": "Mapping of provider selections to service enablement",
+    "providers.vector_db": {
+      "pgvector": [],
+      "qdrant": ["qdrant"],
+      "chroma": []
+    },
+    "providers.web_search_engine": {
+      "searxng": ["searxng", "searxng_redis"],
+      "tavily": [],
+      "brave": []
+    },
+    "providers.content_extraction": {
+      "tika": ["tika"],
+      "docling": []
+    },
+    "providers.stt_engine": {
+      "openai": ["whisper"]
+    },
+    "features.rag": {
+      "true": ["openwebui_postgres"]
+    }
+  },
+
+  "x-provider-fields-map": {
+    "description": "Mapping of provider selections to configuration fields",
+    "providers.vector_db": {
+      "qdrant": [
+        "qdrant_url",
+        "qdrant_api_key",
+        "qdrant_grpc_port",
+        "qdrant_prefer_grpc",
+        "qdrant_on_disk"
+      ],
+      "pgvector": [],
+      "chroma": []
+    },
+    "providers.web_search_engine": {
+      "searxng": [
+        "searxng_query_url",
+        "searxng_base_url",
+        "searxng_safe_search",
+        "searxng_autocomplete",
+        "searxng_max_page"
+      ],
+      "tavily": ["tavily_api_key"],
+      "brave": ["brave_api_key"]
+    },
+    "providers.content_extraction": {
+      "tika": ["tika_server_url"],
+      "docling": ["docling_server_url"]
+    },
+    "providers.stt_engine": {
+      "openai": [
+        "whisper_model",
+        "whisper_language",
+        "whisper_beam_size",
+        "whisper_compute_type",
+        "whisper_device",
+        "whisper_cache_dir"
+      ]
+    }
+  },
+
+  "service_dependencies": {
+    "description": "Service dependency mappings",
+    "openwebui": {
+      "required": ["openwebui_postgres", "openwebui_redis", "litellm"],
+      "optional": {
+        "rag": ["qdrant"],
+        "web_search": ["searxng"],
+        "content_extraction": ["tika"],
+        "speech_to_text": ["whisper"]
+      }
+    },
+    "searxng": {
+      "required": ["searxng_redis"],
+      "optional": {}
+    },
+    "qdrant": {
+      "required": [],
+      "optional": {}
+    },
+    "tika": {
+      "required": [],
+      "optional": {}
+    },
+    "whisper": {
+      "required": [],
+      "optional": {}
+    }
+  }
+}
