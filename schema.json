@@ -1,0 +1,1314 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/leger-labs/leger-schema/v0.0.1/schema.json",
+  
+  "title": "Leger Infrastructure Configuration Schema",
+  "description": "Single source of truth for Podman Quadlet generation - v0.0.1",
+  "schema_version": "0.0.1",
+  
+  "type": "object",
+  "required": ["infrastructure", "features", "providers"],
+  
+  "properties": {
+    "infrastructure": {
+      "type": "object",
+      "description": "Service infrastructure configuration with defaults",
+      "required": ["network", "services"],
+      
+      "properties": {
+        "network": {
+          "type": "object",
+          "title": "Network Configuration",
+          "x-category": "Infrastructure",
+          "x-display-order": 1,
+          "properties": {
+            "name": {
+              "type": "string",
+              "title": "Network Name",
+              "default": "llm",
+              "pattern": "^[a-z0-9-]+$"
+            },
+            "subnet": {
+              "type": "string",
+              "title": "Network Subnet",
+              "default": "10.89.0.0/24",
+              "pattern": "^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}/\\d{1,2}$"
+            }
+          }
+        },
+        
+        "services": {
+          "type": "object",
+          "title": "Service Infrastructure",
+          "properties": {
+            "caddy": {
+              "type": "object",
+              "properties": {
+                "container_name": {"type": "string", "default": "caddy"},
+                "hostname": {"type": "string", "default": "caddy"},
+                "port": {"type": "integer", "default": 443, "minimum": 1, "maximum": 65535},
+                "published_port": {"type": "integer", "default": 443, "minimum": 1, "maximum": 65535},
+                "bind_address": {"type": "string", "default": "0.0.0.0", "pattern": "^(\\d{1,3}\\.){3}\\d{1,3}$"},
+                "external_subdomain": {"type": ["string", "null"], "default": null},
+                "description": {"type": "string", "default": "Caddy Reverse Proxy for LLM Services"}
+              }
+            },
+            
+            "cockpit": {
+              "type": "object",
+              "properties": {
+                "container_name": {"type": "string", "default": "cockpit"},
+                "hostname": {"type": "string", "default": "host"},
+                "port": {"type": "integer", "default": 9090, "minimum": 1, "maximum": 65535},
+                "published_port": {"type": "integer", "default": 9090, "minimum": 1, "maximum": 65535},
+                "bind_address": {"type": "string", "default": "127.0.0.1", "pattern": "^(\\d{1,3}\\.){3}\\d{1,3}$"},
+                "external_subdomain": {"type": "string", "default": "cockpit", "pattern": "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$"},
+                "description": {"type": "string", "default": "Cockpit Web Console"}
+              }
+            },
+            
+            "openwebui": {
+              "type": "object",
+              "properties": {
+                "container_name": {"type": "string", "default": "openwebui"},
+                "hostname": {"type": "string", "default": "openwebui"},
+                "port": {"type": "integer", "default": 8080, "minimum": 1, "maximum": 65535},
+                "published_port": {"type": "integer", "default": 3000, "minimum": 1, "maximum": 65535},
+                "bind_address": {"type": "string", "default": "127.0.0.1", "pattern": "^(\\d{1,3}\\.){3}\\d{1,3}$"},
+                "external_subdomain": {"type": "string", "default": "ai", "pattern": "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$"},
+                "volume": {"type": "string", "default": "openwebui.volume"},
+                "websocket": {"type": "boolean", "default": true},
+                "description": {"type": "string", "default": "Open WebUI - LLM Chat Interface"}
+              }
+            },
+            
+            "openwebui_postgres": {
+              "type": "object",
+              "properties": {
+                "container_name": {"type": "string", "default": "openwebui-postgres"},
+                "hostname": {"type": "string", "default": "openwebui-postgres"},
+                "port": {"type": "integer", "default": 5432, "minimum": 1, "maximum": 65535},
+                "published_port": {"type": ["integer", "null"], "default": null},
+                "bind_address": {"type": ["string", "null"], "default": null},
+                "external_subdomain": {"type": ["string", "null"], "default": null},
+                "volume": {"type": "string", "default": "openwebui-postgres.volume"},
+                "db_name": {"type": "string", "default": "openwebui"},
+                "db_user": {"type": "string", "default": "openwebui"},
+                "description": {"type": "string", "default": "PostgreSQL for OpenWebUI"}
+              }
+            },
+            
+            "openwebui_redis": {
+              "type": "object",
+              "properties": {
+                "container_name": {"type": "string", "default": "openwebui-redis"},
+                "hostname": {"type": "string", "default": "openwebui-redis"},
+                "port": {"type": "integer", "default": 6379, "minimum": 1, "maximum": 65535},
+                "published_port": {"type": ["integer", "null"], "default": null},
+                "bind_address": {"type": ["string", "null"], "default": null},
+                "external_subdomain": {"type": ["string", "null"], "default": null},
+                "volume": {"type": "string", "default": "openwebui-redis.volume"},
+                "description": {"type": "string", "default": "Redis for OpenWebUI"}
+              }
+            },
+            
+            "litellm": {
+              "type": "object",
+              "properties": {
+                "container_name": {"type": "string", "default": "litellm"},
+                "hostname": {"type": "string", "default": "litellm"},
+                "port": {"type": "integer", "default": 4000, "minimum": 1, "maximum": 65535},
+                "published_port": {"type": "integer", "default": 4000, "minimum": 1, "maximum": 65535},
+                "bind_address": {"type": "string", "default": "127.0.0.1", "pattern": "^(\\d{1,3}\\.){3}\\d{1,3}$"},
+                "external_subdomain": {"type": "string", "default": "llm", "pattern": "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$"},
+                "description": {"type": "string", "default": "LiteLLM - Unified LLM Proxy"}
+              }
+            },
+            
+            "litellm_postgres": {
+              "type": "object",
+              "properties": {
+                "container_name": {"type": "string", "default": "litellm-postgres"},
+                "hostname": {"type": "string", "default": "litellm-postgres"},
+                "port": {"type": "integer", "default": 5432, "minimum": 1, "maximum": 65535},
+                "published_port": {"type": ["integer", "null"], "default": null},
+                "bind_address": {"type": ["string", "null"], "default": null},
+                "external_subdomain": {"type": ["string", "null"], "default": null},
+                "volume": {"type": "string", "default": "litellm-postgres.volume"},
+                "db_name": {"type": "string", "default": "litellm"},
+                "db_user": {"type": "string", "default": "litellm"},
+                "description": {"type": "string", "default": "PostgreSQL for LiteLLM"}
+              }
+            },
+            
+            "litellm_redis": {
+              "type": "object",
+              "properties": {
+                "container_name": {"type": "string", "default": "litellm-redis"},
+                "hostname": {"type": "string", "default": "litellm-redis"},
+                "port": {"type": "integer", "default": 6379, "minimum": 1, "maximum": 65535},
+                "published_port": {"type": ["integer", "null"], "default": null},
+                "bind_address": {"type": ["string", "null"], "default": null},
+                "external_subdomain": {"type": ["string", "null"], "default": null},
+                "volume": {"type": "string", "default": "litellm-redis.volume"},
+                "description": {"type": "string", "default": "Redis for LiteLLM"}
+              }
+            },
+            
+            "jupyter": {
+              "type": "object",
+              "properties": {
+                "container_name": {"type": "string", "default": "jupyter"},
+                "hostname": {"type": "string", "default": "jupyter"},
+                "port": {"type": "integer", "default": 8888, "minimum": 1, "maximum": 65535},
+                "published_port": {"type": "integer", "default": 8889, "minimum": 1, "maximum": 65535},
+                "bind_address": {"type": "string", "default": "127.0.0.1", "pattern": "^(\\d{1,3}\\.){3}\\d{1,3}$"},
+                "external_subdomain": {"type": "string", "default": "jupyter", "pattern": "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$"},
+                "volume": {"type": "string", "default": "jupyter.volume"},
+                "description": {"type": "string", "default": "Jupyter Lab - Code Interpreter"}
+              }
+            },
+            
+            "llama_swap": {
+              "type": "object",
+              "properties": {
+                "container_name": {"type": "string", "default": "llama-swap"},
+                "hostname": {"type": "string", "default": "llama-swap"},
+                "port": {"type": "integer", "default": 8000, "minimum": 1, "maximum": 65535},
+                "published_port": {"type": "integer", "default": 8000, "minimum": 1, "maximum": 65535},
+                "bind_address": {"type": "string", "default": "127.0.0.1", "pattern": "^(\\d{1,3}\\.){3}\\d{1,3}$"},
+                "external_subdomain": {"type": "string", "default": "llama", "pattern": "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$"},
+                "volume": {"type": "string", "default": "llama-swap.volume"},
+                "description": {"type": "string", "default": "Llama-Swap - Local Model Router"}
+              }
+            },
+            
+            "qdrant": {
+              "type": "object",
+              "properties": {
+                "container_name": {"type": "string", "default": "qdrant"},
+                "hostname": {"type": "string", "default": "qdrant"},
+                "port": {"type": "integer", "default": 6333, "minimum": 1, "maximum": 65535},
+                "published_port": {"type": "integer", "default": 6333, "minimum": 1, "maximum": 65535},
+                "bind_address": {"type": "string", "default": "127.0.0.1", "pattern": "^(\\d{1,3}\\.){3}\\d{1,3}$"},
+                "external_subdomain": {"type": "string", "default": "qdrant", "pattern": "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$"},
+                "volume": {"type": "string", "default": "qdrant.volume"},
+                "description": {"type": "string", "default": "Qdrant Vector Database"}
+              }
+            },
+            
+            "searxng": {
+              "type": "object",
+              "properties": {
+                "container_name": {"type": "string", "default": "searxng"},
+                "hostname": {"type": "string", "default": "searxng"},
+                "port": {"type": "integer", "default": 8080, "minimum": 1, "maximum": 65535},
+                "published_port": {"type": "integer", "default": 8080, "minimum": 1, "maximum": 65535},
+                "bind_address": {"type": "string", "default": "127.0.0.1", "pattern": "^(\\d{1,3}\\.){3}\\d{1,3}$"},
+                "external_subdomain": {"type": "string", "default": "search", "pattern": "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$"},
+                "volume": {"type": "string", "default": "searxng.volume"},
+                "description": {"type": "string", "default": "SearXNG Meta-Search Engine"}
+              }
+            },
+            
+            "searxng_redis": {
+              "type": "object",
+              "properties": {
+                "container_name": {"type": "string", "default": "searxng-redis"},
+                "hostname": {"type": "string", "default": "searxng-redis"},
+                "port": {"type": "integer", "default": 6379, "minimum": 1, "maximum": 65535},
+                "published_port": {"type": ["integer", "null"], "default": null},
+                "bind_address": {"type": ["string", "null"], "default": null},
+                "external_subdomain": {"type": ["string", "null"], "default": null},
+                "volume": {"type": "string", "default": "searxng-redis.volume"},
+                "description": {"type": "string", "default": "Redis for SearXNG"}
+              }
+            },
+            
+            "tika": {
+              "type": "object",
+              "properties": {
+                "container_name": {"type": "string", "default": "tika"},
+                "hostname": {"type": "string", "default": "tika"},
+                "port": {"type": "integer", "default": 9998, "minimum": 1, "maximum": 65535},
+                "published_port": {"type": ["integer", "null"], "default": null},
+                "bind_address": {"type": ["string", "null"], "default": null},
+                "external_subdomain": {"type": ["string", "null"], "default": null},
+                "description": {"type": "string", "default": "Apache Tika Document Extraction"}
+              }
+            },
+            
+            "whisper": {
+              "type": "object",
+              "properties": {
+                "container_name": {"type": "string", "default": "whisper"},
+                "hostname": {"type": "string", "default": "whisper"},
+                "port": {"type": "integer", "default": 9000, "minimum": 1, "maximum": 65535},
+                "published_port": {"type": "integer", "default": 9000, "minimum": 1, "maximum": 65535},
+                "bind_address": {"type": "string", "default": "127.0.0.1", "pattern": "^(\\d{1,3}\\.){3}\\d{1,3}$"},
+                "external_subdomain": {"type": "string", "default": "whisper", "pattern": "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$"},
+                "description": {"type": "string", "default": "Faster Whisper STT Service"}
+              }
+            },
+            
+            "edgetts": {
+              "type": "object",
+              "properties": {
+                "container_name": {"type": "string", "default": "edgetts"},
+                "hostname": {"type": "string", "default": "edgetts"},
+                "port": {"type": "integer", "default": 8000, "minimum": 1, "maximum": 65535},
+                "published_port": {"type": "integer", "default": 5050, "minimum": 1, "maximum": 65535},
+                "bind_address": {"type": "string", "default": "127.0.0.1", "pattern": "^(\\d{1,3}\\.){3}\\d{1,3}$"},
+                "external_subdomain": {"type": "string", "default": "tts", "pattern": "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$"},
+                "description": {"type": "string", "default": "Edge TTS - Text-to-Speech Service"}
+              }
+            },
+            
+            "comfyui": {
+              "type": "object",
+              "properties": {
+                "container_name": {"type": "string", "default": "comfyui"},
+                "hostname": {"type": "string", "default": "comfyui"},
+                "port": {"type": "integer", "default": 8188, "minimum": 1, "maximum": 65535},
+                "published_port": {"type": "integer", "default": 8188, "minimum": 1, "maximum": 65535},
+                "bind_address": {"type": "string", "default": "127.0.0.1", "pattern": "^(\\d{1,3}\\.){3}\\d{1,3}$"},
+                "external_subdomain": {"type": "string", "default": "comfy", "pattern": "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$"},
+                "websocket": {"type": "boolean", "default": true},
+                "description": {"type": "string", "default": "ComfyUI - Stable Diffusion Workflow Engine"}
+              }
+            },
+            
+            "mcp_context_forge": {
+              "type": "object",
+              "properties": {
+                "container_name": {"type": "string", "default": "mcp-context-forge"},
+                "hostname": {"type": "string", "default": "mcp-context-forge"},
+                "port": {"type": "integer", "default": 4444, "minimum": 1, "maximum": 65535},
+                "published_port": {"type": "integer", "default": 4444, "minimum": 1, "maximum": 65535},
+                "bind_address": {"type": "string", "default": "127.0.0.1", "pattern": "^(\\d{1,3}\\.){3}\\d{1,3}$"},
+                "external_subdomain": {"type": "string", "default": "mcp", "pattern": "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$"},
+                "data_dir": {"type": "string", "default": "%h/.local/share/mcp-context-forge"},
+                "config_dir": {"type": "string", "default": "%h/.config/mcp-context-forge"},
+                "description": {"type": "string", "default": "MCP Context Forge - Enterprise MCP Gateway"}
+              }
+            },
+            
+            "mcp_context_forge_postgres": {
+              "type": "object",
+              "properties": {
+                "container_name": {"type": "string", "default": "mcp-context-forge-postgres"},
+                "hostname": {"type": "string", "default": "mcp-context-forge-postgres"},
+                "port": {"type": "integer", "default": 5432, "minimum": 1, "maximum": 65535},
+                "published_port": {"type": ["integer", "null"], "default": null},
+                "bind_address": {"type": ["string", "null"], "default": null},
+                "external_subdomain": {"type": ["string", "null"], "default": null},
+                "volume": {"type": "string", "default": "mcp-context-forge-postgres.volume"},
+                "db_name": {"type": "string", "default": "mcp"},
+                "db_user": {"type": "string", "default": "mcp"},
+                "description": {"type": "string", "default": "PostgreSQL for MCP Context Forge"}
+              }
+            }
+          }
+        }
+      }
+    },
+    
+    "features": {
+      "type": "object",
+      "title": "Feature Toggles",
+      "description": "Enable/disable major capabilities (15 boolean decisions)",
+      "properties": {
+        "rag": {
+          "type": "boolean",
+          "title": "RAG (Retrieval-Augmented Generation)",
+          "default": false,
+          "x-category": "Features",
+          "x-display-order": 100,
+          "x-rationale": "Enable semantic search over documents using vector databases"
+        },
+        
+        "web_search": {
+          "type": "boolean",
+          "title": "Web Search",
+          "default": false,
+          "x-category": "Features",
+          "x-display-order": 101,
+          "x-rationale": "Enable LLM to search the web for current information"
+        },
+        
+        "image_generation": {
+          "type": "boolean",
+          "title": "Image Generation",
+          "default": false,
+          "x-category": "Features",
+          "x-display-order": 102,
+          "x-rationale": "Enable AI image generation capabilities"
+        },
+        
+        "speech_to_text": {
+          "type": "boolean",
+          "title": "Speech-to-Text",
+          "default": false,
+          "x-category": "Features",
+          "x-display-order": 103,
+          "x-rationale": "Enable voice input transcription"
+        },
+        
+        "text_to_speech": {
+          "type": "boolean",
+          "title": "Text-to-Speech",
+          "default": false,
+          "x-category": "Features",
+          "x-display-order": 104,
+          "x-rationale": "Enable AI voice output"
+        },
+        
+        "code_execution": {
+          "type": "boolean",
+          "title": "Code Execution",
+          "default": false,
+          "x-category": "Features",
+          "x-display-order": 105,
+          "x-rationale": "Allow LLM to write and execute Python code"
+        },
+        
+        "code_interpreter": {
+          "type": "boolean",
+          "title": "Code Interpreter",
+          "default": false,
+          "x-category": "Features",
+          "x-display-order": 106,
+          "x-rationale": "Enable interactive code execution environment"
+        },
+        
+        "google_drive": {
+          "type": "boolean",
+          "title": "Google Drive Integration",
+          "default": false,
+          "x-category": "Features",
+          "x-display-order": 107,
+          "x-rationale": "Connect to Google Drive for document access"
+        },
+        
+        "onedrive": {
+          "type": "boolean",
+          "title": "OneDrive Integration",
+          "default": false,
+          "x-category": "Features",
+          "x-display-order": 108,
+          "x-rationale": "Connect to OneDrive for document access"
+        },
+        
+        "oauth_signup": {
+          "type": "boolean",
+          "title": "OAuth Signup",
+          "default": false,
+          "x-category": "Security",
+          "x-display-order": 200,
+          "x-rationale": "Enable OAuth-based user registration"
+        },
+        
+        "ldap": {
+          "type": "boolean",
+          "title": "LDAP Authentication",
+          "default": false,
+          "x-category": "Security",
+          "x-display-order": 201,
+          "x-rationale": "Enable LDAP directory authentication"
+        },
+        
+        "title_generation": {
+          "type": "boolean",
+          "title": "AI Title Generation",
+          "default": true,
+          "x-category": "AI Assistance",
+          "x-display-order": 300,
+          "x-rationale": "Automatically generate conversation titles"
+        },
+        
+        "autocomplete_generation": {
+          "type": "boolean",
+          "title": "Autocomplete Generation",
+          "default": true,
+          "x-category": "AI Assistance",
+          "x-display-order": 301,
+          "x-rationale": "Enable AI-powered autocomplete suggestions"
+        },
+        
+        "tags_generation": {
+          "type": "boolean",
+          "title": "Tags Generation",
+          "default": true,
+          "x-category": "AI Assistance",
+          "x-display-order": 302,
+          "x-rationale": "Automatically generate conversation tags"
+        },
+        
+        "websocket_support": {
+          "type": "boolean",
+          "title": "WebSocket Support",
+          "default": true,
+          "x-category": "Advanced",
+          "x-display-order": 400,
+          "x-rationale": "Enable real-time WebSocket connections"
+        }
+      }
+    },
+    
+    "providers": {
+      "type": "object",
+      "title": "Provider Selections",
+      "description": "Choose implementation for each feature (13 enum decisions)",
+      "properties": {
+        "vector_db": {
+          "type": "string",
+          "title": "Vector Database",
+          "enum": ["pgvector", "qdrant", "chroma"],
+          "default": "pgvector",
+          "x-category": "Providers",
+          "x-display-order": 100,
+          "x-depends-on": {
+            "features.rag": true
+          },
+          "x-affects-services": {
+            "pgvector": [],
+            "qdrant": ["qdrant"],
+            "chroma": []
+          },
+          "x-provider-fields": {
+            "qdrant": [
+              "qdrant_url",
+              "qdrant_api_key",
+              "qdrant_grpc_port",
+              "qdrant_prefer_grpc",
+              "qdrant_on_disk"
+            ],
+            "pgvector": [],
+            "chroma": []
+          }
+        },
+        
+        "rag_embedding": {
+          "type": "string",
+          "title": "RAG Embedding Model",
+          "enum": ["openai", "ollama"],
+          "default": "openai",
+          "x-category": "Providers",
+          "x-display-order": 101,
+          "x-depends-on": {
+            "features.rag": true
+          },
+          "x-provider-fields": {
+            "openai": ["rag_embedding_api_key"],
+            "ollama": []
+          }
+        },
+        
+        "content_extraction": {
+          "type": "string",
+          "title": "Content Extraction Engine",
+          "enum": ["tika", "docling"],
+          "default": "tika",
+          "x-category": "Providers",
+          "x-display-order": 102,
+          "x-depends-on": {
+            "features.rag": true
+          },
+          "x-affects-services": {
+            "tika": ["tika"],
+            "docling": []
+          },
+          "x-provider-fields": {
+            "tika": ["tika_server_url", "tika_heap_size"],
+            "docling": []
+          }
+        },
+        
+        "text_splitter": {
+          "type": "string",
+          "title": "Text Splitter Algorithm",
+          "enum": ["character", "recursive"],
+          "default": "recursive",
+          "x-category": "Providers",
+          "x-display-order": 103,
+          "x-depends-on": {
+            "features.rag": true
+          }
+        },
+        
+        "web_search_engine": {
+          "type": "string",
+          "title": "Web Search Engine",
+          "enum": ["searxng", "tavily", "brave"],
+          "default": "searxng",
+          "x-category": "Providers",
+          "x-display-order": 110,
+          "x-depends-on": {
+            "features.web_search": true
+          },
+          "x-affects-services": {
+            "searxng": ["searxng", "searxng_redis"],
+            "tavily": [],
+            "brave": []
+          },
+          "x-provider-fields": {
+            "searxng": [
+              "searxng_query_url",
+              "searxng_base_url",
+              "searxng_safe_search",
+              "searxng_autocomplete",
+              "searxng_max_page"
+            ],
+            "tavily": ["tavily_api_key"],
+            "brave": ["brave_api_key"]
+          }
+        },
+        
+        "web_loader": {
+          "type": "string",
+          "title": "Web Page Loader",
+          "enum": ["requests", "selenium"],
+          "default": "requests",
+          "x-category": "Providers",
+          "x-display-order": 111,
+          "x-depends-on": {
+            "features.web_search": true
+          }
+        },
+        
+        "image_engine": {
+          "type": "string",
+          "title": "Image Generation Engine",
+          "enum": ["openai", "automatic1111", "comfyui"],
+          "default": "openai",
+          "x-category": "Providers",
+          "x-display-order": 120,
+          "x-depends-on": {
+            "features.image_generation": true
+          },
+          "x-affects-services": {
+            "comfyui": ["comfyui"],
+            "automatic1111": [],
+            "openai": []
+          },
+          "x-provider-fields": {
+            "comfyui": [
+              "comfyui_workspace",
+              "comfyui_auto_update",
+              "comfyui_web_enable_auth",
+              "comfyui_log_level",
+              "comfyui_args",
+              "comfyui_startup_timeout"
+            ],
+            "automatic1111": [],
+            "openai": []
+          }
+        },
+        
+        "stt_engine": {
+          "type": "string",
+          "title": "Speech-to-Text Engine",
+          "enum": ["openai", "whisper"],
+          "default": "openai",
+          "x-category": "Providers",
+          "x-display-order": 130,
+          "x-depends-on": {
+            "features.speech_to_text": true
+          },
+          "x-affects-services": {
+            "whisper": ["whisper"],
+            "openai": []
+          },
+          "x-provider-fields": {
+            "whisper": [
+              "whisper_model",
+              "whisper_language",
+              "whisper_beam_size",
+              "whisper_compute_type",
+              "whisper_device",
+              "whisper_cache_dir"
+            ],
+            "openai": ["stt_api_key"]
+          }
+        },
+        
+        "tts_engine": {
+          "type": "string",
+          "title": "Text-to-Speech Engine",
+          "enum": ["openai", "elevenlabs", "edgetts"],
+          "default": "openai",
+          "x-category": "Providers",
+          "x-display-order": 131,
+          "x-depends-on": {
+            "features.text_to_speech": true
+          },
+          "x-affects-services": {
+            "edgetts": ["edgetts"],
+            "elevenlabs": [],
+            "openai": []
+          },
+          "x-provider-fields": {
+            "edgetts": [
+              "edgetts_response_format",
+              "edgetts_speed",
+              "edgetts_voice",
+              "edgetts_log_level",
+              "edgetts_startup_timeout"
+            ],
+            "elevenlabs": ["elevenlabs_api_key"],
+            "openai": ["tts_api_key"]
+          }
+        },
+        
+        "code_execution_engine": {
+          "type": "string",
+          "title": "Code Execution Engine",
+          "enum": ["jupyter", "pyodide"],
+          "default": "jupyter",
+          "x-category": "Providers",
+          "x-display-order": 140,
+          "x-depends-on": {
+            "features.code_execution": true
+          },
+          "x-affects-services": {
+            "jupyter": ["jupyter"],
+            "pyodide": []
+          },
+          "x-provider-fields": {
+            "jupyter": ["jupyter_disable_execute_tool"]
+          }
+        },
+        
+        "code_interpreter_engine": {
+          "type": "string",
+          "title": "Code Interpreter Engine",
+          "enum": ["jupyter", "e2b"],
+          "default": "jupyter",
+          "x-category": "Providers",
+          "x-display-order": 141,
+          "x-depends-on": {
+            "features.code_interpreter": true
+          },
+          "x-affects-services": {
+            "jupyter": ["jupyter"],
+            "e2b": []
+          },
+          "x-provider-fields": {
+            "e2b": ["e2b_api_key"]
+          }
+        },
+        
+        "storage_provider": {
+          "type": "string",
+          "title": "External Storage Provider",
+          "enum": ["", "s3", "gcs"],
+          "default": "",
+          "x-category": "Providers",
+          "x-display-order": 150
+        },
+        
+        "auth_provider": {
+          "type": "string",
+          "title": "Authentication Provider",
+          "enum": ["local", "oauth", "ldap"],
+          "default": "local",
+          "x-category": "Security",
+          "x-display-order": 200
+        }
+      }
+    },
+    
+    "provider_config": {
+      "type": "object",
+      "title": "Provider Configuration",
+      "description": "Configuration fields for selected providers (including advanced parameters)",
+      "properties": {
+        "qdrant_url": {
+          "type": "string",
+          "title": "Qdrant URL",
+          "default": "http://qdrant:6333",
+          "format": "uri",
+          "x-depends-on": {
+            "providers.vector_db": "qdrant"
+          },
+          "x-category": "Providers",
+          "x-display-order": 100
+        },
+        
+        "qdrant_api_key": {
+          "type": "string",
+          "title": "Qdrant API Key",
+          "default": "",
+          "x-depends-on": {
+            "providers.vector_db": "qdrant"
+          },
+          "x-sensitive": true,
+          "x-category": "Providers",
+          "x-display-order": 101
+        },
+        
+        "qdrant_grpc_port": {
+          "type": "integer",
+          "title": "Qdrant gRPC Port",
+          "default": 6334,
+          "minimum": 1,
+          "maximum": 65535,
+          "x-depends-on": {
+            "providers.vector_db": "qdrant"
+          },
+          "x-category": "Providers",
+          "x-display-order": 102
+        },
+        
+        "qdrant_prefer_grpc": {
+          "type": "boolean",
+          "title": "Prefer gRPC",
+          "default": false,
+          "x-depends-on": {
+            "providers.vector_db": "qdrant"
+          },
+          "x-category": "Providers",
+          "x-display-order": 103
+        },
+        
+        "qdrant_on_disk": {
+          "type": "boolean",
+          "title": "Store on Disk",
+          "default": true,
+          "x-depends-on": {
+            "providers.vector_db": "qdrant"
+          },
+          "x-category": "Providers",
+          "x-display-order": 104
+        },
+        
+        "rag_embedding_api_key": {
+          "type": "string",
+          "title": "RAG Embedding API Key",
+          "default": "",
+          "x-depends-on": {
+            "providers.rag_embedding": "openai"
+          },
+          "x-sensitive": true,
+          "x-category": "Providers",
+          "x-display-order": 110
+        },
+        
+        "tika_server_url": {
+          "type": "string",
+          "title": "Tika Server URL",
+          "default": "http://tika:9998",
+          "format": "uri",
+          "x-depends-on": {
+            "providers.content_extraction": "tika"
+          },
+          "x-category": "Providers",
+          "x-display-order": 120
+        },
+        
+        "tika_heap_size": {
+          "type": "string",
+          "title": "Tika Heap Size",
+          "default": "2g",
+          "pattern": "^[0-9]+[mg]$",
+          "x-depends-on": {
+            "providers.content_extraction": "tika"
+          },
+          "x-category": "Advanced",
+          "x-display-order": 121
+        },
+        
+        "searxng_query_url": {
+          "type": "string",
+          "title": "SearXNG Query URL",
+          "default": "http://searxng:8080/search?q=<query>",
+          "format": "uri",
+          "x-depends-on": {
+            "providers.web_search_engine": "searxng"
+          },
+          "x-category": "Providers",
+          "x-display-order": 130
+        },
+        
+        "searxng_base_url": {
+          "type": "string",
+          "title": "SearXNG Base URL",
+          "default": "",
+          "x-depends-on": {
+            "providers.web_search_engine": "searxng"
+          },
+          "x-category": "Providers",
+          "x-display-order": 131
+        },
+        
+        "searxng_safe_search": {
+          "type": "integer",
+          "title": "Safe Search Level",
+          "default": 0,
+          "enum": [0, 1, 2],
+          "x-depends-on": {
+            "providers.web_search_engine": "searxng"
+          },
+          "x-category": "Providers",
+          "x-display-order": 132
+        },
+        
+        "searxng_autocomplete": {
+          "type": "string",
+          "title": "Autocomplete Provider",
+          "default": "google",
+          "enum": ["google", "duckduckgo", "wikipedia", ""],
+          "x-depends-on": {
+            "providers.web_search_engine": "searxng"
+          },
+          "x-category": "Providers",
+          "x-display-order": 133
+        },
+        
+        "searxng_max_page": {
+          "type": "integer",
+          "title": "Maximum Pages",
+          "default": 10,
+          "minimum": 1,
+          "maximum": 50,
+          "x-depends-on": {
+            "providers.web_search_engine": "searxng"
+          },
+          "x-category": "Advanced",
+          "x-display-order": 134
+        },
+        
+        "tavily_api_key": {
+          "type": "string",
+          "title": "Tavily API Key",
+          "default": "",
+          "x-depends-on": {
+            "providers.web_search_engine": "tavily"
+          },
+          "x-sensitive": true,
+          "x-category": "Providers",
+          "x-display-order": 140
+        },
+        
+        "brave_api_key": {
+          "type": "string",
+          "title": "Brave Search API Key",
+          "default": "",
+          "x-depends-on": {
+            "providers.web_search_engine": "brave"
+          },
+          "x-sensitive": true,
+          "x-category": "Providers",
+          "x-display-order": 150
+        },
+        
+        "comfyui_workspace": {
+          "type": "string",
+          "title": "ComfyUI Workspace Path",
+          "default": "/workspace",
+          "x-depends-on": {
+            "providers.image_engine": "comfyui"
+          },
+          "x-category": "Providers",
+          "x-display-order": 160
+        },
+        
+        "comfyui_auto_update": {
+          "type": "boolean",
+          "title": "ComfyUI Auto-Update",
+          "default": false,
+          "x-depends-on": {
+            "providers.image_engine": "comfyui"
+          },
+          "x-category": "Providers",
+          "x-display-order": 161
+        },
+        
+        "comfyui_web_enable_auth": {
+          "type": "boolean",
+          "title": "ComfyUI Web Authentication",
+          "default": false,
+          "x-depends-on": {
+            "providers.image_engine": "comfyui"
+          },
+          "x-category": "Providers",
+          "x-display-order": 162
+        },
+        
+        "comfyui_log_level": {
+          "type": "string",
+          "title": "ComfyUI Log Level",
+          "default": "INFO",
+          "enum": ["DEBUG", "INFO", "WARNING", "ERROR"],
+          "x-depends-on": {
+            "providers.image_engine": "comfyui"
+          },
+          "x-category": "Advanced",
+          "x-display-order": 163
+        },
+        
+        "comfyui_args": {
+          "type": "string",
+          "title": "ComfyUI Additional Arguments",
+          "default": "",
+          "x-depends-on": {
+            "providers.image_engine": "comfyui"
+          },
+          "x-category": "Advanced",
+          "x-display-order": 164
+        },
+        
+        "comfyui_startup_timeout": {
+          "type": "integer",
+          "title": "ComfyUI Startup Timeout",
+          "default": 900,
+          "minimum": 60,
+          "maximum": 1800,
+          "x-depends-on": {
+            "providers.image_engine": "comfyui"
+          },
+          "x-category": "Advanced",
+          "x-display-order": 165
+        },
+        
+        "whisper_model": {
+          "type": "string",
+          "title": "Whisper Model",
+          "default": "base",
+          "enum": ["tiny", "base", "small", "medium", "large"],
+          "x-depends-on": {
+            "providers.stt_engine": "whisper"
+          },
+          "x-category": "Providers",
+          "x-display-order": 170
+        },
+        
+        "whisper_language": {
+          "type": "string",
+          "title": "Whisper Language",
+          "default": "",
+          "x-depends-on": {
+            "providers.stt_engine": "whisper"
+          },
+          "x-category": "Providers",
+          "x-display-order": 171
+        },
+        
+        "whisper_beam_size": {
+          "type": "integer",
+          "title": "Beam Size",
+          "default": 5,
+          "minimum": 1,
+          "maximum": 10,
+          "x-depends-on": {
+            "providers.stt_engine": "whisper"
+          },
+          "x-category": "Advanced",
+          "x-display-order": 172
+        },
+        
+        "whisper_compute_type": {
+          "type": "string",
+          "title": "Compute Type",
+          "default": "int8",
+          "enum": ["int8", "float16", "float32"],
+          "x-depends-on": {
+            "providers.stt_engine": "whisper"
+          },
+          "x-category": "Advanced",
+          "x-display-order": 173
+        },
+        
+        "whisper_device": {
+          "type": "string",
+          "title": "Device",
+          "default": "auto",
+          "enum": ["auto", "cpu", "cuda"],
+          "x-depends-on": {
+            "providers.stt_engine": "whisper"
+          },
+          "x-category": "Advanced",
+          "x-display-order": 174
+        },
+        
+        "whisper_cache_dir": {
+          "type": "string",
+          "title": "Cache Directory",
+          "default": "/var/lib/whisper/cache",
+          "x-depends-on": {
+            "providers.stt_engine": "whisper"
+          },
+          "x-category": "Advanced",
+          "x-display-order": 175
+        },
+        
+        "stt_api_key": {
+          "type": "string",
+          "title": "STT API Key",
+          "default": "",
+          "x-depends-on": {
+            "providers.stt_engine": "openai"
+          },
+          "x-sensitive": true,
+          "x-category": "Providers",
+          "x-display-order": 180
+        },
+        
+        "edgetts_response_format": {
+          "type": "string",
+          "title": "Edge TTS Response Format",
+          "default": "mp3",
+          "enum": ["mp3", "wav", "opus"],
+          "x-depends-on": {
+            "providers.tts_engine": "edgetts"
+          },
+          "x-category": "Providers",
+          "x-display-order": 190
+        },
+        
+        "edgetts_speed": {
+          "type": "number",
+          "title": "Edge TTS Speech Speed",
+          "default": 1.0,
+          "minimum": 0.5,
+          "maximum": 2.0,
+          "x-depends-on": {
+            "providers.tts_engine": "edgetts"
+          },
+          "x-category": "Providers",
+          "x-display-order": 191
+        },
+        
+        "edgetts_voice": {
+          "type": "string",
+          "title": "Edge TTS Voice",
+          "default": "en-US-AriaNeural",
+          "x-depends-on": {
+            "providers.tts_engine": "edgetts"
+          },
+          "x-category": "Providers",
+          "x-display-order": 192
+        },
+        
+        "edgetts_log_level": {
+          "type": "string",
+          "title": "Edge TTS Log Level",
+          "default": "INFO",
+          "enum": ["DEBUG", "INFO", "WARNING", "ERROR"],
+          "x-depends-on": {
+            "providers.tts_engine": "edgetts"
+          },
+          "x-category": "Advanced",
+          "x-display-order": 193
+        },
+        
+        "edgetts_startup_timeout": {
+          "type": "integer",
+          "title": "Edge TTS Startup Timeout",
+          "default": 300,
+          "minimum": 30,
+          "maximum": 600,
+          "x-depends-on": {
+            "providers.tts_engine": "edgetts"
+          },
+          "x-category": "Advanced",
+          "x-display-order": 194
+        },
+        
+        "elevenlabs_api_key": {
+          "type": "string",
+          "title": "ElevenLabs API Key",
+          "default": "",
+          "x-depends-on": {
+            "providers.tts_engine": "elevenlabs"
+          },
+          "x-sensitive": true,
+          "x-category": "Providers",
+          "x-display-order": 200
+        },
+        
+        "tts_api_key": {
+          "type": "string",
+          "title": "TTS API Key",
+          "default": "",
+          "x-depends-on": {
+            "providers.tts_engine": "openai"
+          },
+          "x-sensitive": true,
+          "x-category": "Providers",
+          "x-display-order": 210
+        },
+        
+        "jupyter_disable_execute_tool": {
+          "type": "boolean",
+          "title": "Disable Jupyter Notebook Execute Tool",
+          "default": true,
+          "x-depends-on": {
+            "providers.code_execution_engine": "jupyter"
+          },
+          "x-category": "Advanced",
+          "x-display-order": 220
+        },
+        
+        "e2b_api_key": {
+          "type": "string",
+          "title": "E2B API Key",
+          "default": "",
+          "x-depends-on": {
+            "providers.code_interpreter_engine": "e2b"
+          },
+          "x-sensitive": true,
+          "x-category": "Providers",
+          "x-display-order": 230
+        },
+        
+        "rag_top_k": {
+          "type": "integer",
+          "title": "RAG Top K",
+          "default": 5,
+          "minimum": 1,
+          "maximum": 50,
+          "x-depends-on": {
+            "features.rag": true
+          },
+          "x-category": "Advanced",
+          "x-display-order": 500
+        },
+        
+        "chunk_size": {
+          "type": "integer",
+          "title": "Chunk Size",
+          "default": 1500,
+          "minimum": 100,
+          "maximum": 10000,
+          "x-depends-on": {
+            "features.rag": true
+          },
+          "x-category": "Advanced",
+          "x-display-order": 501
+        },
+        
+        "chunk_overlap": {
+          "type": "integer",
+          "title": "Chunk Overlap",
+          "default": 100,
+          "minimum": 0,
+          "maximum": 1000,
+          "x-depends-on": {
+            "features.rag": true
+          },
+          "x-category": "Advanced",
+          "x-display-order": 502
+        },
+        
+        "openwebui_timeout_start": {
+          "type": "integer",
+          "title": "OpenWebUI Startup Timeout",
+          "default": 900,
+          "minimum": 60,
+          "maximum": 1800,
+          "x-category": "Advanced",
+          "x-display-order": 600
+        }
+      }
+    },
+    
+    "secrets": {
+      "type": "object",
+      "title": "Secrets",
+      "description": "Secret template pointers (CLI injects actual values)",
+      "properties": {
+        "openwebui_secret_key": {
+          "type": "string",
+          "title": "OpenWebUI Secret Key",
+          "default": "{OPENWEBUI_SECRET_KEY}",
+          "x-sensitive": true
+        },
+        
+        "litellm_master_key": {
+          "type": "string",
+          "title": "LiteLLM Master Key",
+          "default": "{LITELLM_MASTER_KEY}",
+          "x-sensitive": true
+        },
+        
+        "openai_api_key": {
+          "type": "string",
+          "title": "OpenAI API Key",
+          "default": "{OPENAI_API_KEY}",
+          "x-sensitive": true
+        },
+        
+        "anthropic_api_key": {
+          "type": "string",
+          "title": "Anthropic API Key",
+          "default": "{ANTHROPIC_API_KEY}",
+          "x-sensitive": true
+        },
+        
+        "gemini_api_key": {
+          "type": "string",
+          "title": "Google Gemini API Key",
+          "default": "{GEMINI_API_KEY}",
+          "x-sensitive": true
+        },
+        
+        "openrouter_api_key": {
+          "type": "string",
+          "title": "OpenRouter API Key",
+          "default": "{OPENROUTER_API_KEY}",
+          "x-sensitive": true
+        },
+        
+        "groq_api_key": {
+          "type": "string",
+          "title": "Groq API Key",
+          "default": "{GROQ_API_KEY}",
+          "x-sensitive": true
+        },
+        
+        "searxng_secret_key": {
+          "type": "string",
+          "title": "SearXNG Secret Key",
+          "default": "{SEARXNG_SECRET_KEY}",
+          "x-sensitive": true
+        },
+        
+        "hf_token": {
+          "type": "string",
+          "title": "HuggingFace API Token",
+          "default": "{HF_TOKEN}",
+          "x-sensitive": true
+        },
+        
+        "civitai_token": {
+          "type": "string",
+          "title": "CivitAI API Token",
+          "default": "{CIVITAI_TOKEN}",
+          "x-sensitive": true
+        },
+        
+        "mcp_jwt_secret_key": {
+          "type": "string",
+          "title": "MCP JWT Secret Key",
+          "default": "{JWT_SECRET_KEY}",
+          "x-sensitive": true
+        },
+        
+        "mcp_admin_password": {
+          "type": "string",
+          "title": "MCP Admin Password",
+          "default": "{ADMIN_PASSWORD}",
+          "x-sensitive": true
+        },
+        
+        "mcp_auth_encryption_secret": {
+          "type": "string",
+          "title": "MCP Auth Encryption Secret",
+          "default": "{AUTH_ENCRYPTION_SECRET}",
+          "x-sensitive": true
+        }
+      }
+    }
+  }
+}
