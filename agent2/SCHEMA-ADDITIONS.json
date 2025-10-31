@@ -1,0 +1,548 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Schema Additions for Agent 2 Services",
+  "description": "Infrastructure and configuration additions for jupyter, litellm, llama-swap, and mcp-context-forge services",
+
+  "infrastructure": {
+    "type": "object",
+    "description": "Service infrastructure with defaults",
+    "properties": {
+
+      "jupyter": {
+        "type": "object",
+        "description": "Jupyter Lab - Interactive code interpreter",
+        "properties": {
+          "container_name": {"type": "string", "default": "jupyter"},
+          "hostname": {"type": "string", "default": "jupyter"},
+          "port": {"type": "integer", "default": 8888},
+          "published_port": {"type": "integer", "default": 8889},
+          "bind_address": {"type": "string", "default": "127.0.0.1"},
+          "external_subdomain": {"type": "string", "default": "jupyter"},
+          "description": {"type": "string", "default": "Jupyter Lab - Interactive code interpreter"},
+          "volume": {"type": "string", "default": "jupyter.volume"},
+          "requires": {
+            "type": "array",
+            "default": ["litellm"],
+            "items": {"type": "string"}
+          }
+        }
+      },
+
+      "litellm": {
+        "type": "object",
+        "description": "LiteLLM - Unified LLM proxy",
+        "properties": {
+          "container_name": {"type": "string", "default": "litellm"},
+          "hostname": {"type": "string", "default": "litellm"},
+          "port": {"type": "integer", "default": 4000},
+          "published_port": {"type": "integer", "default": 4000},
+          "bind_address": {"type": "string", "default": "127.0.0.1"},
+          "external_subdomain": {"type": "string", "default": "llm"},
+          "description": {"type": "string", "default": "LiteLLM - Unified LLM proxy"},
+          "requires": {
+            "type": "array",
+            "default": ["litellm_postgres", "litellm_redis"],
+            "items": {"type": "string"}
+          }
+        }
+      },
+
+      "litellm_postgres": {
+        "type": "object",
+        "description": "PostgreSQL database for LiteLLM",
+        "properties": {
+          "container_name": {"type": "string", "default": "litellm-postgres"},
+          "hostname": {"type": "string", "default": "litellm-postgres"},
+          "port": {"type": "integer", "default": 5432},
+          "published_port": {"type": "integer", "default": null},
+          "db_name": {"type": "string", "default": "litellm"},
+          "db_user": {"type": "string", "default": "litellm"},
+          "volume": {"type": "string", "default": "litellm-postgres.volume"}
+        }
+      },
+
+      "litellm_redis": {
+        "type": "object",
+        "description": "Redis cache for LiteLLM",
+        "properties": {
+          "container_name": {"type": "string", "default": "litellm-redis"},
+          "hostname": {"type": "string", "default": "litellm-redis"},
+          "port": {"type": "integer", "default": 6379},
+          "published_port": {"type": "integer", "default": null},
+          "volume": {"type": "string", "default": "litellm-redis.volume"}
+        }
+      },
+
+      "llama_swap": {
+        "type": "object",
+        "description": "Llama-Swap - Dynamic local model router",
+        "properties": {
+          "container_name": {"type": "string", "default": "llama-swap"},
+          "hostname": {"type": "string", "default": "llama-swap"},
+          "port": {"type": "integer", "default": 8000},
+          "published_port": {"type": "integer", "default": 8000},
+          "bind_address": {"type": "string", "default": "127.0.0.1"},
+          "external_subdomain": {"type": "string", "default": "llama"},
+          "description": {"type": "string", "default": "Llama-Swap - Dynamic local model router"},
+          "volume": {"type": "string", "default": "llama-swap.volume"}
+        }
+      },
+
+      "mcp_context_forge": {
+        "type": "object",
+        "description": "MCP Context Forge - Enterprise MCP Gateway",
+        "properties": {
+          "container_name": {"type": "string", "default": "mcp-context-forge"},
+          "hostname": {"type": "string", "default": "mcp-context-forge"},
+          "port": {"type": "integer", "default": 4444},
+          "published_port": {"type": "integer", "default": 4444},
+          "bind_address": {"type": "string", "default": "127.0.0.1"},
+          "external_subdomain": {"type": "string", "default": "mcp"},
+          "description": {"type": "string", "default": "MCP Context Forge - Enterprise MCP Gateway"},
+          "data_dir": {"type": "string", "default": "%h/.local/share/mcp-context-forge"},
+          "config_dir": {"type": "string", "default": "%h/.config/mcp-context-forge"},
+          "requires": {
+            "type": "array",
+            "default": ["mcp_context_forge_postgres"],
+            "items": {"type": "string"}
+          },
+          "database": {
+            "type": "string",
+            "enum": ["postgresql", "sqlite", "mariadb", "mysql"],
+            "default": "postgresql",
+            "description": "Database backend to use"
+          },
+          "environment": {
+            "type": "string",
+            "enum": ["development", "production"],
+            "default": "production"
+          },
+          "log_level": {
+            "type": "string",
+            "enum": ["DEBUG", "INFO", "WARNING", "ERROR"],
+            "default": "INFO"
+          },
+          "admin_email": {"type": "string", "default": "admin@example.com"},
+          "admin_name": {"type": "string", "default": "Platform Administrator"},
+          "auth_required": {"type": "boolean", "default": true},
+          "jwt_algorithm": {
+            "type": "string",
+            "enum": ["HS256", "HS384", "HS512", "RS256", "RS384", "RS512", "ES256", "ES384", "ES512"],
+            "default": "HS256"
+          },
+          "secure_cookies": {"type": "boolean", "default": false},
+          "catalog_enabled": {"type": "boolean", "default": true},
+          "ui_enabled": {"type": "boolean", "default": true},
+          "admin_api_enabled": {"type": "boolean", "default": true},
+          "redis_enabled": {"type": "boolean", "default": false},
+          "federation_enabled": {"type": "boolean", "default": true},
+          "a2a_enabled": {"type": "boolean", "default": true},
+          "llmchat_enabled": {"type": "boolean", "default": false},
+          "observability_enabled": {"type": "boolean", "default": false},
+          "llm_provider": {
+            "type": "string",
+            "enum": ["azure_openai", "openai", "anthropic", "aws_bedrock", "ollama"],
+            "default": "azure_openai",
+            "x-depends-on": {
+              "llmchat_enabled": true
+            }
+          },
+          "otel_exporter": {
+            "type": "string",
+            "enum": ["otlp", "jaeger", "zipkin", "console"],
+            "default": "otlp",
+            "x-depends-on": {
+              "observability_enabled": true
+            }
+          },
+          "otel_endpoint": {
+            "type": ["string", "null"],
+            "default": null,
+            "description": "OpenTelemetry endpoint URL",
+            "x-depends-on": {
+              "observability_enabled": true
+            }
+          }
+        }
+      },
+
+      "mcp_context_forge_postgres": {
+        "type": "object",
+        "description": "PostgreSQL database for MCP Context Forge",
+        "properties": {
+          "container_name": {"type": "string", "default": "mcp-context-forge-postgres"},
+          "hostname": {"type": "string", "default": "mcp-context-forge-postgres"},
+          "port": {"type": "integer", "default": 5432},
+          "published_port": {"type": "integer", "default": null},
+          "db_name": {"type": "string", "default": "mcp"},
+          "db_user": {"type": "string", "default": "mcp"},
+          "volume": {"type": "string", "default": "mcp-context-forge-postgres.volume"}
+        }
+      }
+    }
+  },
+
+  "litellm": {
+    "type": "object",
+    "description": "LiteLLM model configurations",
+    "properties": {
+      "models": {
+        "type": "array",
+        "description": "Cloud LLM models to expose via LiteLLM",
+        "default": [],
+        "items": {
+          "type": "object",
+          "required": ["name", "provider", "enabled"],
+          "properties": {
+            "name": {"type": "string", "description": "Model identifier"},
+            "provider": {
+              "type": "string",
+              "enum": ["openai", "anthropic", "gemini", "openrouter", "groq"],
+              "description": "Cloud provider"
+            },
+            "enabled": {"type": "boolean", "default": false},
+            "description": {"type": "string", "default": ""},
+            "context_window": {"type": "integer", "minimum": 1},
+            "openrouter_model": {
+              "type": "string",
+              "description": "OpenRouter model identifier",
+              "x-depends-on": {
+                "provider": "openrouter"
+              }
+            },
+            "groq_model": {
+              "type": "string",
+              "description": "Groq model identifier",
+              "x-depends-on": {
+                "provider": "groq"
+              }
+            }
+          }
+        }
+      },
+      "database_url": {
+        "type": "string",
+        "default": "postgresql://litellm@litellm-postgres:5432/litellm",
+        "description": "PostgreSQL connection string"
+      },
+      "drop_params": {
+        "type": "boolean",
+        "default": true,
+        "description": "Drop unknown parameters (recommended for compatibility)"
+      }
+    }
+  },
+
+  "local_inference": {
+    "type": "object",
+    "description": "Local model inference configuration for llama-swap",
+    "properties": {
+      "models": {
+        "type": "object",
+        "description": "Local models to manage",
+        "default": {},
+        "additionalProperties": {
+          "type": "object",
+          "required": ["name", "enabled", "model_uri"],
+          "properties": {
+            "enabled": {"type": "boolean", "default": false},
+            "name": {"type": "string", "description": "Model identifier for API"},
+            "display_name": {"type": "string", "description": "Human-readable name"},
+            "model_uri": {"type": "string", "description": "RamaLama URI (e.g., huggingface://...)"},
+            "description": {"type": "string", "default": ""},
+            "ctx_size": {"type": "integer", "default": 8192, "description": "Context window size"},
+            "ttl": {"type": "integer", "default": 0, "description": "Time-to-live in seconds (0 = never unload)"},
+            "flash_attn": {"type": "boolean", "default": true, "description": "Flash attention optimization"},
+            "vulkan_driver": {"type": "string", "default": "", "description": "Vulkan driver for GPU acceleration"},
+            "group": {
+              "type": "string",
+              "enum": ["light", "heavy", "embeddings"],
+              "default": "light",
+              "description": "Swap group membership"
+            },
+            "ram_required_gb": {"type": "number", "description": "Estimated RAM requirement"},
+            "context_length": {"type": "integer", "description": "Maximum context length"},
+            "quantization": {"type": "string", "description": "Quantization format (e.g., Q5_K_M)"}
+          }
+        }
+      },
+      "groups": {
+        "type": "object",
+        "description": "Swap groups for model management",
+        "default": {},
+        "additionalProperties": {
+          "type": "object",
+          "required": ["description", "swap", "members"],
+          "properties": {
+            "description": {"type": "string"},
+            "swap": {"type": "boolean", "description": "Enable swap management"},
+            "members": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Model names in this group"
+            }
+          }
+        }
+      },
+      "defaults": {
+        "type": "object",
+        "description": "Default settings for all models",
+        "properties": {
+          "log_level": {"type": "string", "default": "info"},
+          "metrics_max_in_memory": {"type": "integer", "default": 1000},
+          "container_image": {"type": "string", "default": "quay.io/ramalama/ramalama:latest"},
+          "ngl": {"type": "integer", "default": 999, "description": "GPU layers (-1 = all)"},
+          "temp": {"type": "number", "default": 0.7, "description": "Temperature"},
+          "threads": {"type": "integer", "default": 0, "description": "CPU threads (0 = auto)"},
+          "backend": {"type": "string", "default": "auto"},
+          "cache_reuse": {"type": "boolean", "default": true},
+          "health_check_timeout": {"type": "integer", "default": 30},
+          "start_port": {"type": "integer", "default": 11434, "description": "Base port for spawned containers"},
+          "auto_unload": {"type": "boolean", "default": true, "description": "Auto-unload idle models"}
+        }
+      }
+    }
+  },
+
+  "secrets": {
+    "type": "object",
+    "description": "All secrets referenced in templates",
+    "properties": {
+      "api_keys": {
+        "type": "object",
+        "properties": {
+          "litellm_master": {
+            "type": "string",
+            "default": "{LITELLM_MASTER_KEY}",
+            "description": "LiteLLM master API key for internal services"
+          }
+        }
+      },
+      "llm_providers": {
+        "type": "object",
+        "description": "Cloud LLM provider API keys",
+        "properties": {
+          "openai": {
+            "type": "string",
+            "default": "{OPENAI_API_KEY}",
+            "description": "OpenAI API key"
+          },
+          "anthropic": {
+            "type": "string",
+            "default": "{ANTHROPIC_API_KEY}",
+            "description": "Anthropic API key"
+          },
+          "gemini": {
+            "type": "string",
+            "default": "{GEMINI_API_KEY}",
+            "description": "Google Gemini API key"
+          },
+          "openrouter": {
+            "type": "string",
+            "default": "{OPENROUTER_API_KEY}",
+            "description": "OpenRouter API key"
+          },
+          "groq": {
+            "type": "string",
+            "default": "{GROQ_API_KEY}",
+            "description": "Groq API key"
+          }
+        }
+      },
+      "mcp": {
+        "type": "object",
+        "description": "MCP Context Forge secrets",
+        "properties": {
+          "jwt_secret_key": {
+            "type": "string",
+            "default": "{JWT_SECRET_KEY}",
+            "description": "JWT secret key for HMAC signing (HS256)"
+          },
+          "admin_password": {
+            "type": "string",
+            "default": "{ADMIN_PASSWORD}",
+            "description": "Admin user password"
+          },
+          "basic_auth_password": {
+            "type": "string",
+            "default": "{BASIC_AUTH_PASSWORD}",
+            "description": "Basic auth password"
+          },
+          "platform_admin_password": {
+            "type": "string",
+            "default": "{PLATFORM_ADMIN_PASSWORD}",
+            "description": "Platform admin password"
+          },
+          "auth_encryption_secret": {
+            "type": "string",
+            "default": "{AUTH_ENCRYPTION_SECRET}",
+            "description": "Secret for encrypting stored credentials"
+          }
+        }
+      },
+      "mcp_sso": {
+        "type": "object",
+        "description": "MCP Context Forge SSO secrets (optional)",
+        "properties": {
+          "github_client_id": {
+            "type": "string",
+            "default": "{SSO_GITHUB_CLIENT_ID}",
+            "description": "GitHub OAuth client ID",
+            "x-depends-on": {
+              "infrastructure.services.mcp_context_forge.sso_github_enabled": true
+            }
+          },
+          "github_client_secret": {
+            "type": "string",
+            "default": "{SSO_GITHUB_CLIENT_SECRET}",
+            "description": "GitHub OAuth client secret",
+            "x-depends-on": {
+              "infrastructure.services.mcp_context_forge.sso_github_enabled": true
+            }
+          },
+          "google_client_id": {
+            "type": "string",
+            "default": "{SSO_GOOGLE_CLIENT_ID}",
+            "description": "Google OAuth client ID",
+            "x-depends-on": {
+              "infrastructure.services.mcp_context_forge.sso_google_enabled": true
+            }
+          },
+          "google_client_secret": {
+            "type": "string",
+            "default": "{SSO_GOOGLE_CLIENT_SECRET}",
+            "description": "Google OAuth client secret",
+            "x-depends-on": {
+              "infrastructure.services.mcp_context_forge.sso_google_enabled": true
+            }
+          }
+        }
+      },
+      "mcp_llm_providers": {
+        "type": "object",
+        "description": "LLM provider keys for MCP Context Forge LLM chat (optional)",
+        "properties": {
+          "openai_api_key": {
+            "type": "string",
+            "default": "{OPENAI_API_KEY}",
+            "description": "OpenAI API key for MCP chat",
+            "x-depends-on": {
+              "infrastructure.services.mcp_context_forge.llmchat_enabled": true
+            }
+          },
+          "anthropic_api_key": {
+            "type": "string",
+            "default": "{ANTHROPIC_API_KEY}",
+            "description": "Anthropic API key for MCP chat",
+            "x-depends-on": {
+              "infrastructure.services.mcp_context_forge.llmchat_enabled": true
+            }
+          },
+          "azure_openai_key": {
+            "type": "string",
+            "default": "{AZURE_OPENAI_KEY}",
+            "description": "Azure OpenAI key for MCP chat",
+            "x-depends-on": {
+              "infrastructure.services.mcp_context_forge.llmchat_enabled": true
+            }
+          }
+        }
+      }
+    }
+  },
+
+  "x-affects-services-map": {
+    "description": "Mapping of provider selections to service enablement",
+    "providers": {
+      "code_execution_engine": {
+        "jupyter": ["jupyter"],
+        "pyodide": []
+      },
+      "code_interpreter_engine": {
+        "jupyter": ["jupyter"],
+        "e2b": []
+      }
+    },
+    "features": {
+      "mcp_gateway": {
+        "true": ["mcp_context_forge", "mcp_context_forge_postgres"],
+        "false": []
+      }
+    },
+    "local_models_enabled": {
+      "description": "When any local model is enabled, llama-swap is needed",
+      "expression": "local_inference.models | any(model.enabled)",
+      "enables": ["llama_swap"]
+    }
+  },
+
+  "x-provider-fields-map": {
+    "description": "Dynamic field mapping per provider selection",
+    "providers": {
+      "code_execution_engine": {
+        "jupyter": [],
+        "pyodide": []
+      },
+      "code_interpreter_engine": {
+        "jupyter": [],
+        "e2b": ["e2b_api_key"]
+      }
+    }
+  },
+
+  "advanced": {
+    "type": "object",
+    "description": "Advanced tuning parameters",
+    "properties": {
+      "jupyter_disable_execute_tool": {
+        "type": "boolean",
+        "default": true,
+        "title": "Disable Jupyter Notebook Execute Tool",
+        "description": "Disable NBI notebook execute tool by default (security)",
+        "x-depends-on": {
+          "providers.code_execution_engine": "jupyter"
+        }
+      },
+      "litellm_drop_params": {
+        "type": "boolean",
+        "default": true,
+        "title": "Drop Unknown Parameters",
+        "description": "Drop unknown parameters for better compatibility"
+      },
+      "local_inference_auto_unload": {
+        "type": "boolean",
+        "default": true,
+        "title": "Auto-unload Idle Models",
+        "description": "Automatically unload idle local models to save memory"
+      },
+      "mcp_federation_sync_interval": {
+        "type": "integer",
+        "default": 300,
+        "minimum": 60,
+        "maximum": 3600,
+        "title": "MCP Federation Sync Interval",
+        "description": "Seconds between federation syncs",
+        "x-depends-on": {
+          "infrastructure.services.mcp_context_forge.federation_enabled": true
+        }
+      },
+      "mcp_db_pool_size": {
+        "type": "integer",
+        "default": 200,
+        "minimum": 10,
+        "maximum": 1000,
+        "title": "MCP Database Pool Size",
+        "description": "PostgreSQL connection pool size for high concurrency"
+      }
+    }
+  },
+
+  "notes": {
+    "description": "Implementation notes for schema designers",
+    "jupyter_custom_image": "Jupyter requires a custom Dockerfile to be present at ~/.config/containers/systemd/jupyter/Dockerfile. The template uses ExecStartPre to build this image. This is outside the scope of the schema but should be documented.",
+    "litellm_yaml_generation": "The litellm.yaml.njk template generates a complex YAML configuration file from blueprint-config.json. This file is mounted read-only into the container.",
+    "llama_swap_podman_socket": "llama-swap requires access to the Podman socket to spawn ramalama containers. This is a security consideration.",
+    "mcp_secrets_file": "MCP Context Forge loads most secrets from an external file (secrets.env) via EnvironmentFile directive. This allows for better secret management.",
+    "mcp_mcp_servers": "Individual MCP servers are NOT configured in the schema or templates. They are registered via the Admin UI or API after deployment."
+  }
+}
