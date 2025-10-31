@@ -1,0 +1,620 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Leger Schema Additions - Agent 3",
+  "description": "Schema additions for caddy, cockpit, comfyui, and edgetts services",
+
+  "infrastructure": {
+    "type": "object",
+    "description": "Service infrastructure with defaults",
+    "properties": {
+      "caddy": {
+        "type": "object",
+        "description": "Caddy reverse proxy - core infrastructure service",
+        "properties": {
+          "container_name": {
+            "type": "string",
+            "default": "caddy"
+          },
+          "hostname": {
+            "type": "string",
+            "default": "caddy"
+          },
+          "port": {
+            "type": "integer",
+            "default": 443,
+            "description": "Primary HTTPS port"
+          },
+          "published_port": {
+            "type": "integer",
+            "default": 443,
+            "description": "Published HTTPS port"
+          },
+          "bind_address": {
+            "type": "string",
+            "default": "0.0.0.0",
+            "description": "SPECIAL CASE: Must be 0.0.0.0 for Tailscale access"
+          },
+          "external_subdomain": {
+            "type": ["string", "null"],
+            "default": null,
+            "description": "Caddy itself is not exposed via a subdomain"
+          },
+          "description": {
+            "type": "string",
+            "default": "Caddy Reverse Proxy for LLM Services"
+          }
+        },
+        "additionalProperties": false
+      },
+
+      "cockpit": {
+        "type": "object",
+        "description": "Cockpit web console for system management",
+        "properties": {
+          "container_name": {
+            "type": "string",
+            "default": "cockpit"
+          },
+          "hostname": {
+            "type": "string",
+            "default": "host",
+            "description": "SPECIAL CASE: 'host' represents the actual host system"
+          },
+          "port": {
+            "type": "integer",
+            "default": 9090
+          },
+          "published_port": {
+            "type": "integer",
+            "default": 9090
+          },
+          "bind_address": {
+            "type": "string",
+            "default": "127.0.0.1"
+          },
+          "external_subdomain": {
+            "type": "string",
+            "default": "cockpit"
+          },
+          "description": {
+            "type": "string",
+            "default": "Cockpit Web Console for system management"
+          }
+        },
+        "additionalProperties": false
+      },
+
+      "comfyui": {
+        "type": "object",
+        "description": "ComfyUI Stable Diffusion workflow engine",
+        "properties": {
+          "container_name": {
+            "type": "string",
+            "default": "comfyui"
+          },
+          "hostname": {
+            "type": "string",
+            "default": "comfyui"
+          },
+          "port": {
+            "type": "integer",
+            "default": 8188
+          },
+          "published_port": {
+            "type": "integer",
+            "default": 8188
+          },
+          "bind_address": {
+            "type": "string",
+            "default": "127.0.0.1"
+          },
+          "external_subdomain": {
+            "type": "string",
+            "default": "comfy"
+          },
+          "description": {
+            "type": "string",
+            "default": "ComfyUI - Stable Diffusion Workflow Engine"
+          },
+          "websocket": {
+            "type": "boolean",
+            "default": true,
+            "description": "Requires WebSocket support for real-time updates"
+          }
+        },
+        "additionalProperties": false
+      },
+
+      "edgetts": {
+        "type": "object",
+        "description": "Edge TTS text-to-speech service (ICEBOX - v0.1.0)",
+        "properties": {
+          "container_name": {
+            "type": "string",
+            "default": "edgetts"
+          },
+          "hostname": {
+            "type": "string",
+            "default": "edgetts"
+          },
+          "port": {
+            "type": "integer",
+            "default": 8000
+          },
+          "published_port": {
+            "type": "integer",
+            "default": 5050
+          },
+          "bind_address": {
+            "type": "string",
+            "default": "127.0.0.1"
+          },
+          "external_subdomain": {
+            "type": "string",
+            "default": "tts"
+          },
+          "description": {
+            "type": "string",
+            "default": "Edge TTS - Text-to-Speech Service"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+
+  "provider_config": {
+    "type": "object",
+    "description": "Provider-specific configuration fields",
+    "properties": {
+      "comfyui_workspace": {
+        "type": "string",
+        "title": "ComfyUI Workspace Path",
+        "description": "Container path for ComfyUI workspace",
+        "default": "/workspace",
+        "x-depends-on": {
+          "providers.image_engine": "comfyui"
+        }
+      },
+      "comfyui_auto_update": {
+        "type": "boolean",
+        "title": "ComfyUI Auto-Update",
+        "description": "Enable automatic updates (disabled for version control)",
+        "default": false,
+        "x-depends-on": {
+          "providers.image_engine": "comfyui"
+        }
+      },
+      "comfyui_web_enable_auth": {
+        "type": "boolean",
+        "title": "ComfyUI Web Authentication",
+        "description": "Enable web authentication (disabled for local services)",
+        "default": false,
+        "x-depends-on": {
+          "providers.image_engine": "comfyui"
+        }
+      },
+      "comfyui_log_level": {
+        "type": "string",
+        "title": "ComfyUI Log Level",
+        "description": "Logging verbosity",
+        "enum": ["DEBUG", "INFO", "WARNING", "ERROR"],
+        "default": "INFO",
+        "x-depends-on": {
+          "providers.image_engine": "comfyui"
+        }
+      },
+      "comfyui_args": {
+        "type": "string",
+        "title": "ComfyUI Additional Arguments",
+        "description": "Additional command line arguments for ComfyUI",
+        "default": "",
+        "x-depends-on": {
+          "providers.image_engine": "comfyui"
+        }
+      },
+      "edgetts_response_format": {
+        "type": "string",
+        "title": "Edge TTS Response Format",
+        "description": "Audio format for TTS output",
+        "enum": ["mp3", "wav", "opus"],
+        "default": "mp3",
+        "x-depends-on": {
+          "providers.tts_engine": "edgetts"
+        }
+      },
+      "edgetts_speed": {
+        "type": "number",
+        "title": "Edge TTS Speech Speed",
+        "description": "Speech speed (0.5 = half speed, 2.0 = double speed)",
+        "minimum": 0.5,
+        "maximum": 2.0,
+        "default": 1.0,
+        "x-depends-on": {
+          "providers.tts_engine": "edgetts"
+        }
+      },
+      "edgetts_voice": {
+        "type": "string",
+        "title": "Edge TTS Voice",
+        "description": "Microsoft Edge neural voice to use",
+        "default": "en-US-AriaNeural",
+        "examples": [
+          "en-US-AriaNeural",
+          "en-US-GuyNeural",
+          "en-GB-SoniaNeural"
+        ],
+        "x-depends-on": {
+          "providers.tts_engine": "edgetts"
+        }
+      },
+      "edgetts_log_level": {
+        "type": "string",
+        "title": "Edge TTS Log Level",
+        "description": "Logging verbosity",
+        "enum": ["DEBUG", "INFO", "WARNING", "ERROR"],
+        "default": "INFO",
+        "x-depends-on": {
+          "providers.tts_engine": "edgetts"
+        }
+      }
+    }
+  },
+
+  "secrets": {
+    "type": "object",
+    "description": "Secret values to be injected by CLI",
+    "properties": {
+      "hf_token": {
+        "type": "string",
+        "title": "HuggingFace API Token",
+        "description": "HuggingFace API token for model downloads (ComfyUI)",
+        "default": "{HF_TOKEN}",
+        "x-sensitive": true,
+        "x-depends-on": {
+          "providers.image_engine": "comfyui"
+        }
+      },
+      "civitai_token": {
+        "type": "string",
+        "title": "CivitAI API Token",
+        "description": "CivitAI API token for model downloads (ComfyUI)",
+        "default": "{CIVITAI_TOKEN}",
+        "x-sensitive": true,
+        "x-depends-on": {
+          "providers.image_engine": "comfyui"
+        }
+      }
+    }
+  },
+
+  "advanced": {
+    "type": "object",
+    "description": "Advanced tuning parameters",
+    "properties": {
+      "comfyui_startup_timeout": {
+        "type": "integer",
+        "title": "ComfyUI Startup Timeout",
+        "description": "Startup timeout in seconds (models can take time to load)",
+        "minimum": 60,
+        "maximum": 1800,
+        "default": 900,
+        "x-depends-on": {
+          "providers.image_engine": "comfyui"
+        }
+      },
+      "edgetts_startup_timeout": {
+        "type": "integer",
+        "title": "Edge TTS Startup Timeout",
+        "description": "Startup timeout in seconds",
+        "minimum": 30,
+        "maximum": 600,
+        "default": 300,
+        "x-depends-on": {
+          "providers.tts_engine": "edgetts"
+        }
+      }
+    }
+  },
+
+  "x-affects-services": {
+    "description": "Mapping of provider choices to enabled services",
+    "type": "object",
+    "properties": {
+      "providers.image_engine": {
+        "type": "object",
+        "properties": {
+          "comfyui": {
+            "type": "string",
+            "const": "comfyui",
+            "description": "Enables ComfyUI container"
+          },
+          "automatic1111": {
+            "type": "string",
+            "const": "automatic1111",
+            "description": "Enables Automatic1111 container"
+          },
+          "openai": {
+            "type": "null",
+            "description": "No separate service (API only)"
+          }
+        }
+      },
+      "providers.tts_engine": {
+        "type": "object",
+        "properties": {
+          "edgetts": {
+            "type": "string",
+            "const": "edgetts",
+            "description": "Enables Edge TTS container"
+          },
+          "openai": {
+            "type": "null",
+            "description": "No separate service (API only)"
+          },
+          "elevenlabs": {
+            "type": "null",
+            "description": "No separate service (API only)"
+          }
+        }
+      }
+    }
+  },
+
+  "x-provider-fields": {
+    "description": "Mapping of provider choices to configuration fields",
+    "type": "object",
+    "properties": {
+      "providers.image_engine": {
+        "type": "object",
+        "properties": {
+          "comfyui": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "const": [
+              "comfyui_workspace",
+              "comfyui_auto_update",
+              "comfyui_web_enable_auth",
+              "comfyui_log_level",
+              "comfyui_args",
+              "hf_token",
+              "civitai_token"
+            ]
+          },
+          "automatic1111": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "const": []
+          },
+          "openai": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "const": []
+          }
+        }
+      },
+      "providers.tts_engine": {
+        "type": "object",
+        "properties": {
+          "edgetts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "const": [
+              "edgetts_response_format",
+              "edgetts_speed",
+              "edgetts_voice",
+              "edgetts_log_level"
+            ]
+          },
+          "openai": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "const": []
+          },
+          "elevenlabs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "const": []
+          }
+        }
+      }
+    }
+  },
+
+  "x-service-dependencies": {
+    "description": "Service dependencies for systemd ordering",
+    "type": "object",
+    "properties": {
+      "caddy": {
+        "type": "object",
+        "properties": {
+          "required": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "const": ["network", "tailscaled"]
+          },
+          "optional": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "const": ["all services with external_subdomain"]
+          }
+        }
+      },
+      "cockpit": {
+        "type": "object",
+        "properties": {
+          "required": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "const": ["network", "podman.socket"]
+          },
+          "optional": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "const": []
+          }
+        }
+      },
+      "comfyui": {
+        "type": "object",
+        "properties": {
+          "required": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "const": ["network"]
+          },
+          "optional": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "const": []
+          }
+        }
+      },
+      "edgetts": {
+        "type": "object",
+        "properties": {
+          "required": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "const": ["network"]
+          },
+          "optional": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "const": []
+          }
+        }
+      }
+    }
+  },
+
+  "x-enabled-by": {
+    "description": "Conditional enablement expressions for services",
+    "type": "object",
+    "properties": {
+      "caddy": {
+        "type": "null",
+        "description": "Always enabled (core infrastructure)"
+      },
+      "cockpit": {
+        "type": "null",
+        "description": "Always enabled (user decision)"
+      },
+      "comfyui": {
+        "type": "string",
+        "const": "features.image_generation && providers.image_engine == 'comfyui'"
+      },
+      "edgetts": {
+        "type": "string",
+        "const": "features.tts && providers.tts_engine == 'edgetts'"
+      }
+    }
+  },
+
+  "x-volumes": {
+    "description": "Volume definitions for services (PROPOSED - not in current schema)",
+    "type": "object",
+    "properties": {
+      "caddy": {
+        "type": "array",
+        "items": {
+          "type": "object"
+        },
+        "const": [
+          {
+            "name": "caddy-config",
+            "type": "volume",
+            "description": "Caddy internal configuration state"
+          },
+          {
+            "name": "caddy-data",
+            "type": "volume",
+            "description": "Certificate storage (though Tailscale handles TLS)"
+          }
+        ]
+      },
+      "comfyui": {
+        "type": "array",
+        "items": {
+          "type": "object"
+        },
+        "const": [
+          {
+            "name": "comfyui-workspace",
+            "type": "volume",
+            "mount_path": "/workspace",
+            "description": "Outputs, custom nodes, user files, configurations"
+          },
+          {
+            "name": "comfyui-models",
+            "type": "volume",
+            "mount_path": "/workspace/models",
+            "description": "SD checkpoints, VAEs, LoRAs, embeddings (separate for backup)"
+          }
+        ]
+      },
+      "edgetts": {
+        "type": "array",
+        "items": {
+          "type": "object"
+        },
+        "const": [
+          {
+            "name": "edgetts-cache",
+            "type": "volume",
+            "mount_path": "/data",
+            "description": "Voice model cache"
+          }
+        ]
+      }
+    }
+  },
+
+  "notes": {
+    "agent": "agent3",
+    "services_audited": ["caddy", "cockpit", "comfyui", "edgetts"],
+    "special_cases": [
+      "caddy: bind_address must be 0.0.0.0 for Tailscale access",
+      "cockpit: hostname is 'host' to represent the actual host system",
+      "cockpit: requires privileged mode and --pid=host",
+      "comfyui: has multiple volumes (workspace and models)",
+      "comfyui: WebSocket support required",
+      "edgetts: marked as ICEBOX for v0.0.1"
+    ],
+    "recommendations": [
+      "Add websocket boolean to infrastructure for all services that need it",
+      "Standardize volume configuration approach",
+      "Consider adding x-volumes section to schema",
+      "Add description field as required in infrastructure",
+      "Clarify EdgeTTS v0.0.1 vs v0.1.0 status"
+    ]
+  }
+}
