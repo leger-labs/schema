@@ -12,9 +12,11 @@ build/
 # Test outputs
 test-output/
 
-# TypeScript
+# TypeScript compiled outputs
 *.js.map
 *.d.ts.map
+njk-typescript-implementation/src/**/*.js
+njk-typescript-implementation/examples/**/*.js
 
 # OS files
 .DS_Store
