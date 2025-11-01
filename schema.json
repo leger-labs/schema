@@ -7,9 +7,54 @@
   "schema_version": "0.0.1",
   
   "type": "object",
-  "required": ["infrastructure", "features", "providers"],
-  
+  "required": ["tailscale", "infrastructure", "features", "providers"],
+
   "properties": {
+    "tailscale": {
+      "type": "object",
+      "title": "Tailscale Configuration",
+      "description": "Tailscale MagicDNS configuration for HTTPS access",
+      "x-category": "Infrastructure",
+      "x-display-order": 0,
+      "required": ["full_hostname"],
+
+      "properties": {
+        "full_hostname": {
+          "type": "string",
+          "title": "Tailscale MagicDNS Hostname",
+          "description": "Your full Tailscale MagicDNS hostname (e.g., blueprint.tail8dd1.ts.net)",
+          "pattern": "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\\.tail[a-z0-9]+\\.ts\\.net$",
+          "x-display-order": 1,
+          "x-help": "Find this in your Tailscale admin console under 'DNS' settings. Format: <machine-name>.<tailnet-id>.ts.net",
+          "examples": [
+            "myserver.tail8dd1.ts.net",
+            "blueprint.tail8dd1.ts.net",
+            "llm-stack.tailabcd.ts.net"
+          ]
+        },
+
+        "hostname": {
+          "type": "string",
+          "title": "Machine Hostname",
+          "description": "The machine name portion (auto-extracted from full_hostname)",
+          "pattern": "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$",
+          "x-display-order": 2,
+          "x-readonly": true,
+          "examples": ["blueprint", "myserver", "llm-stack"]
+        },
+
+        "tailnet": {
+          "type": "string",
+          "title": "Tailnet Domain",
+          "description": "The tailnet domain portion (auto-extracted from full_hostname)",
+          "pattern": "^tail[a-z0-9]+\\.ts\\.net$",
+          "x-display-order": 3,
+          "x-readonly": true,
+          "examples": ["tail8dd1.ts.net", "tailabcd.ts.net"]
+        }
+      }
+    },
+
     "infrastructure": {
       "type": "object",
       "description": "Service infrastructure configuration with defaults",
