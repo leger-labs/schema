@@ -1,0 +1,106 @@
+# ═════════════════════════════════════════════════════════════════════════════
+# 🎤  v
+# Release: 
+# 
+# ═════════════════════════════════════════════════════════════════════════════
+
+[Unit]
+Description=
+After=network-online.target llm.network.service
+Requires=llm.network.service
+
+[Container]
+Image=
+AutoUpdate=registry
+ContainerName=
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🌐 NETWORK
+# ═════════════════════════════════════════════════════════════════════════════
+Network=llm.network
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 📍 PUBLISHED PORT (for OpenWebUI to access)
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 💾 VOLUMES
+# ═════════════════════════════════════════════════════════════════════════════
+
+# Whisper model cache - shared with host for CLI usage
+Volume=:/root/.cache/huggingface:Z
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🎮 GPU ACCESS (AMD Vulkan)
+# ═════════════════════════════════════════════════════════════════════════════
+# AMD GPU devices for Vulkan acceleration
+AddDevice=/dev/dri
+AddDevice=/dev/kfd
+
+# Security options for GPU access
+PodmanArgs=--security-opt=label=disable
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🌍 ENVIRONMENT
+# ═════════════════════════════════════════════════════════════════════════════
+
+# Whisper model configuration
+Environment=WHISPER_MODEL=
+Environment=WHISPER_BEAM_SIZE=
+Environment=WHISPER_COMPUTE_TYPE=
+
+# Device configuration (auto detects Vulkan)
+Environment=WHISPER_DEVICE=
+
+# Cache location
+Environment=HF_HOME=/root/.cache/huggingface
+Environment=TRANSFORMERS_CACHE=/root/.cache/huggingface
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🔧 HEALTH CHECK
+# ═════════════════════════════════════════════════════════════════════════════
+
+# Primary health check - service responsiveness
+HealthCmd=wget --no-verbose --tries=1 --spider http://localhost:/health || exit 1
+HealthInterval=60s
+HealthTimeout=5s
+HealthRetries=3
+HealthStartPeriod=60s
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🚀 SERVICE
+# ═════════════════════════════════════════════════════════════════════════════
+[Service]
+Slice=llm.slice
+TimeoutStartSec=900
+Restart=on-failure
+RestartSec=10
+
+
+# Startup verification with model checking
+ExecStartPost=/bin/sh -c '\
+  echo "Whisper: Waiting for service to be ready..."; \
+  for i in $(seq 1 60); do \
+    if wget --no-verbose --tries=1 --spider --timeout=2 http://localhost:/health 2>/dev/null; then \
+      echo "Whisper: ✓ Service health check passed"; \
+      if wget --no-verbose --tries=1 -O- --timeout=5 http://localhost:/v1/models 2>/dev/null | grep -q "whisper"; then \
+        echo "Whisper: ✓ Model API available (model: )"; \
+        echo "Whisper: Service ready at http://localhost:"; \
+        exit 0; \
+      else \
+        echo "Whisper: ⚠ Model not yet loaded (will load on first request)"; \
+      fi; \
+    fi; \
+    sleep 1; \
+  done; \
+  echo "Whisper: ⚠ Service started but verification incomplete (will retry on first use)"; \
+  exit 0'
+
+# Log startup status
+ExecStartPre=/usr/bin/echo "Whisper: Starting STT service with model= language="
+
+[Install]
+# No WantedBy - dependencies via After/Requires

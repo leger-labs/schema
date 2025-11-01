@@ -1,4 +1,0 @@
-❌ VALIDATION FAILED
-
-Errors:
-  • Validation error at topology -> services -> litellm_postgres -> configuration -> properties -> POSTGRES_USER: 'description' is a required property

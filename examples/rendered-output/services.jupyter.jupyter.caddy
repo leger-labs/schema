@@ -1,0 +1,26 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Jupyter Lab - Code Interpreter
+# ─────────────────────────────────────────────────────────────────────────────
+
+https://jupyter.blueprint.tail8dd1.ts.net {
+    reverse_proxy jupyter:8888 {
+        # Standard headers
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+        header_up X-Forwarded-Host {host}
+        
+    }
+    
+    # Logging
+    log {
+        output file /var/log/caddy/jupyter.log {
+            roll_size 50mb
+            roll_keep 3
+        }
+        format console
+        level ERROR
+    }
+}
+

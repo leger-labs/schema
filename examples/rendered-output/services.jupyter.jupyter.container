@@ -1,0 +1,122 @@
+# ═════════════════════════════════════════════════════════════════════════════
+# 🐍  v
+# Release: 
+# 
+# ═════════════════════════════════════════════════════════════════════════════
+
+[Unit]
+Description=Jupyter Lab - Code Interpreter
+After=network-online.target llm.network.service
+Requires=llm.network.service
+
+[Container]
+Image=
+AutoUpdate=registry
+ContainerName=jupyter
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🌐 NETWORK
+# ═════════════════════════════════════════════════════════════════════════════
+Network=llm.network
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 📍 PUBLISHED PORT (for OpenWebUI and Caddy to access)
+# ═════════════════════════════════════════════════════════════════════════════
+PublishPort=127.0.0.1:8889:8888
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 💾 VOLUME (Minimal - workspace only)
+# ═════════════════════════════════════════════════════════════════════════════
+Volume=jupyter.volume:/home/jovyan/blueprint-workspace:Z
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🌍 ENVIRONMENT - Auto-generated from configuration
+# ═════════════════════════════════════════════════════════════════════════════
+
+# JupyterLab configuration
+Environment=JUPYTER_ENABLE_LAB=yes
+Environment=NB_USER=jovyan
+Environment=CHOWN_HOME=yes
+Environment=CHOWN_HOME_OPTS=-R
+
+# Notebook Intelligence Configuration (LiteLLM integration)
+Environment=LITELLM_API_BASE=http://litellm:4000
+Environment=LITELLM_API_KEY=${LITELLM_MASTER_KEY}
+
+# Optional: Disable notebook execute tool by default (security)
+Environment=NBI_NOTEBOOK_EXECUTE_TOOL=disabled
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🚀 EXECUTION
+# ═════════════════════════════════════════════════════════════════════════════
+
+# Start JupyterLab with OpenWebUI-compatible settings
+Exec=start-notebook.py \
+  --NotebookApp.token='' \
+  --NotebookApp.password='' \
+  --NotebookApp.disable_check_xsrf=True \
+  --NotebookApp.allow_origin='*' \
+  --NotebookApp.allow_remote_access=True \
+  --NotebookApp.notebook_dir=/home/jovyan/blueprint-workspace
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🔧 HEALTH CHECK
+# ═════════════════════════════════════════════════════════════════════════════
+HealthCmd=curl -f http://localhost:8888/api || exit 1
+HealthInterval=30s
+HealthTimeout=5s
+HealthRetries=3
+HealthStartPeriod=30s
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🚀 SERVICE
+# ═════════════════════════════════════════════════════════════════════════════
+[Service]
+Slice=llm.slice
+TimeoutStartSec=180
+Restart=always
+RestartSec=10
+
+
+# Build custom image before starting (only if not exists or changed)
+ExecStartPre=-/usr/bin/podman build \
+  -t localhost/blueprint-jupyter:latest \
+  -f %h/.config/containers/systemd/jupyter/Dockerfile \
+  %h/.config/containers/systemd/jupyter
+
+# Log startup info
+ExecStartPost=/usr/bin/sh -c '\
+  echo "Jupyter Lab: Started successfully"; \
+  echo "Jupyter Lab: Internal URL: http://jupyter:8888"; \
+  echo "Jupyter Lab: External URL: https://jupyter.blueprint.tail8dd1.ts.net"; \
+  echo "Jupyter Lab: OpenWebUI will connect to: http://jupyter:8888"; \
+  echo "Jupyter Lab: Workspace: /home/jovyan/blueprint-workspace"; \
+  echo "Jupyter Lab: AI Code Completion: Enabled (notebook-intelligence + LiteLLM)"'
+
+[Install]
+WantedBy=default.target
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 📝 ARCHITECTURE NOTES
+# ═════════════════════════════════════════════════════════════════════════════
+#
+# CUSTOM IMAGE:
+#   - Built from scipy-notebook (scientific Python stack)
+#   - Adds nb_conda_kernels (multi-environment support)
+#   - Adds notebook-intelligence (AI code completion via LiteLLM)
+#
+# OPENWEBUI INTEGRATION:
+#   - Code Interpreter: AI executes code in persistent kernel
+#   - Code Execution: User clicks "Run" button for generated code
+#
+# SECURITY:
+#   - No authentication (Tailscale security boundary)
+#   - NBI notebook execute tool disabled by default
+#   - Only blueprint-workspace volume mounted (minimal access)
+#
+# DEPENDENCIES:
+#   - After litellm.service (needs LiteLLM for AI features)
+# ═════════════════════════════════════════════════════════════════════════════

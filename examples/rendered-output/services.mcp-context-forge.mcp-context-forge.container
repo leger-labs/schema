@@ -1,0 +1,424 @@
+
+
+
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# MCP Context Forge - Enterprise MCP Gateway# Generated from blueprint-config.json
+# ═════════════════════════════════════════════════════════════════════════════
+
+[Unit]
+Description=MCP Context Forge - Enterprise MCP Gateway
+After=network-online.target llm.network.service
+
+
+After=mcp-context-forge-postgres.service
+
+Requires=llm.network.service
+
+
+Wants=mcp-context-forge-postgres.service
+
+[Container]
+Image=
+AutoUpdate=registry
+ContainerName=mcp-context-forge
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🌐 NETWORK
+# ═════════════════════════════════════════════════════════════════════════════
+Network=llm.network
+
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 📍 PUBLISHED PORT
+# ═════════════════════════════════════════════════════════════════════════════
+PublishPort=127.0.0.1:4444:4444
+
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 💾 VOLUMES
+# ═════════════════════════════════════════════════════════════════════════════
+# Data directory (persistent state - SQLite, logs, etc.)
+Volume=%h/.local/share/mcp-context-forge:/data:Z
+
+# Config directory (read-only - secrets.env, jwt keys, etc.)
+Volume=%h/.config/mcp-context-forge:/config:ro,Z
+
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🌍 ENVIRONMENT
+# ═════════════════════════════════════════════════════════════════════════════
+# ─────────────────────────────────────────────────────────────────────────────
+# BASIC SETTINGS
+# ─────────────────────────────────────────────────────────────────────────────
+Environment=APP_NAME=MCP_Gateway
+Environment=HOST=0.0.0.0
+Environment=PORT=4444
+Environment=ENVIRONMENT=production
+Environment=LOG_LEVEL=INFO
+Environment=LOG_FORMAT=json
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DATABASE CONFIGURATION
+# ─────────────────────────────────────────────────────────────────────────────
+Environment=DATABASE_URL=postgresql://mcp@mcp-context-forge-postgres:5432/mcp
+
+# Database pool configuration
+Environment=DB_POOL_SIZE=200
+Environment=DB_MAX_OVERFLOW=10
+Environment=DB_POOL_TIMEOUT=30
+Environment=DB_POOL_RECYCLE=3600
+
+# ─────────────────────────────────────────────────────────────────────────────
+# AUTHENTICATION - Basic Configuration
+# ─────────────────────────────────────────────────────────────────────────────
+Environment=BASIC_AUTH_USER=admin
+Environment=PLATFORM_ADMIN_EMAIL=admin@example.com
+Environment=PLATFORM_ADMIN_FULL_NAME=Admin User
+Environment=AUTH_REQUIRED=true
+
+# JWT Configuration
+Environment=JWT_ALGORITHM=HS256
+Environment=JWT_AUDIENCE=mcpgateway-api
+Environment=JWT_ISSUER=mcpgateway
+Environment=JWT_AUDIENCE_VERIFICATION=true
+Environment=TOKEN_EXPIRY=10080
+Environment=REQUIRE_TOKEN_EXPIRATION=false
+
+
+# Password Policy
+Environment=ARGON2ID_TIME_COST=3
+Environment=ARGON2ID_MEMORY_COST=65536
+Environment=ARGON2ID_PARALLELISM=1
+Environment=PASSWORD_MIN_LENGTH=8
+Environment=PASSWORD_REQUIRE_UPPERCASE=false
+Environment=PASSWORD_REQUIRE_LOWERCASE=false
+Environment=PASSWORD_REQUIRE_NUMBERS=false
+Environment=PASSWORD_REQUIRE_SPECIAL=false
+
+# Email Authentication
+Environment=EMAIL_AUTH_ENABLED=true
+Environment=MAX_FAILED_LOGIN_ATTEMPTS=5
+Environment=ACCOUNT_LOCKOUT_DURATION_MINUTES=30
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PERSONAL TEAMS CONFIGURATION
+# ─────────────────────────────────────────────────────────────────────────────
+Environment=AUTO_CREATE_PERSONAL_TEAMS=true
+Environment=PERSONAL_TEAM_PREFIX=personal
+Environment=MAX_TEAMS_PER_USER=50
+Environment=MAX_MEMBERS_PER_TEAM=100
+Environment=INVITATION_EXPIRY_DAYS=7
+Environment=REQUIRE_EMAIL_VERIFICATION_FOR_INVITES=true
+
+# ─────────────────────────────────────────────────────────────────────────────
+# MCP CLIENT AUTHENTICATION
+# ─────────────────────────────────────────────────────────────────────────────
+Environment=MCP_CLIENT_AUTH_ENABLED=true
+Environment=TRUST_PROXY_AUTH=false
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SSO (Single Sign-On) - Master Settings
+# ─────────────────────────────────────────────────────────────────────────────
+Environment=SSO_ENABLED=false
+Environment=SSO_AUTO_CREATE_USERS=true
+Environment=SSO_PRESERVE_ADMIN_AUTH=true
+Environment=SSO_REQUIRE_ADMIN_APPROVAL=false
+
+# Individual SSO providers (disabled by default - enable in secrets.env)
+Environment=SSO_GITHUB_ENABLED=false
+Environment=SSO_GOOGLE_ENABLED=false
+Environment=SSO_IBM_VERIFY_ENABLED=false
+Environment=SSO_KEYCLOAK_ENABLED=false
+Environment=SSO_ENTRA_ENABLED=false
+Environment=SSO_GENERIC_ENABLED=false
+Environment=SSO_OKTA_ENABLED=false
+
+# ─────────────────────────────────────────────────────────────────────────────
+# OAUTH 2.0 DYNAMIC CLIENT REGISTRATION (DCR) & PKCE
+# ─────────────────────────────────────────────────────────────────────────────
+Environment=DCR_ENABLED=true
+Environment=DCR_AUTO_REGISTER_ON_MISSING_CREDENTIALS=true
+Environment=DCR_TOKEN_ENDPOINT_AUTH_METHOD=client_secret_basic
+Environment=DCR_METADATA_CACHE_TTL=3600
+Environment=OAUTH_DISCOVERY_ENABLED=true
+Environment=OAUTH_PREFERRED_CODE_CHALLENGE_METHOD=S256
+
+# ─────────────────────────────────────────────────────────────────────────────
+# A2A (AGENT-TO-AGENT) FEATURES
+# ─────────────────────────────────────────────────────────────────────────────
+Environment=MCPGATEWAY_A2A_ENABLED=false
+Environment=MCPGATEWAY_A2A_MAX_AGENTS=100
+Environment=MCPGATEWAY_A2A_DEFAULT_TIMEOUT=30
+Environment=MCPGATEWAY_A2A_MAX_RETRIES=3
+Environment=MCPGATEWAY_A2A_METRICS_ENABLED=true
+
+# ─────────────────────────────────────────────────────────────────────────────
+# LLM CHAT MCP CLIENT
+# ─────────────────────────────────────────────────────────────────────────────
+Environment=LLMCHAT_ENABLED=false
+
+# ─────────────────────────────────────────────────────────────────────────────
+# MCP SERVER CATALOG
+# ─────────────────────────────────────────────────────────────────────────────
+Environment=MCPGATEWAY_CATALOG_ENABLED=false
+
+# ─────────────────────────────────────────────────────────────────────────────
+# UI FEATURES
+# ─────────────────────────────────────────────────────────────────────────────
+Environment=MCPGATEWAY_UI_ENABLED=true
+Environment=MCPGATEWAY_ADMIN_API_ENABLED=true
+Environment=MCPGATEWAY_BULK_IMPORT_ENABLED=true
+Environment=MCPGATEWAY_BULK_IMPORT_MAX_TOOLS=200
+Environment=MCPGATEWAY_BULK_IMPORT_RATE_LIMIT=10
+Environment=MCPGATEWAY_UI_TOOL_TEST_TIMEOUT=60000
+Environment=MCPCONTEXT_UI_ENABLED=true
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SECURITY
+# ─────────────────────────────────────────────────────────────────────────────
+Environment=SKIP_SSL_VERIFY=false
+Environment=APP_DOMAIN=http://localhost:4444
+Environment=CORS_ENABLED=true
+Environment=CORS_ALLOW_CREDENTIALS=true
+Environment=SECURE_COOKIES=false
+Environment=COOKIE_SAMESITE=lax
+Environment=SECURITY_HEADERS_ENABLED=true
+Environment=X_FRAME_OPTIONS=DENY
+Environment=X_CONTENT_TYPE_OPTIONS_ENABLED=true
+Environment=X_XSS_PROTECTION_ENABLED=true
+Environment=X_DOWNLOAD_OPTIONS_ENABLED=true
+Environment=HSTS_ENABLED=true
+Environment=HSTS_MAX_AGE=31536000
+Environment=HSTS_INCLUDE_SUBDOMAINS=true
+Environment=REMOVE_SERVER_HEADERS=true
+
+# ─────────────────────────────────────────────────────────────────────────────
+# RESPONSE COMPRESSION
+# ─────────────────────────────────────────────────────────────────────────────
+Environment=COMPRESSION_ENABLED=true
+Environment=COMPRESSION_MINIMUM_SIZE=500
+Environment=COMPRESSION_GZIP_LEVEL=6
+Environment=COMPRESSION_BROTLI_QUALITY=4
+Environment=COMPRESSION_ZSTD_LEVEL=3
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TRANSPORT
+# ─────────────────────────────────────────────────────────────────────────────
+Environment=TRANSPORT_TYPE=all
+Environment=WEBSOCKET_PING_INTERVAL=30
+Environment=SSE_RETRY_TIMEOUT=5000
+Environment=SSE_KEEPALIVE_ENABLED=true
+Environment=SSE_KEEPALIVE_INTERVAL=30
+Environment=USE_STATEFUL_SESSIONS=false
+Environment=JSON_RESPONSE_ENABLED=true
+
+# ─────────────────────────────────────────────────────────────────────────────
+# FEDERATION
+# ─────────────────────────────────────────────────────────────────────────────
+Environment=FEDERATION_ENABLED=false
+Environment=FEDERATION_DISCOVERY=false
+Environment=FEDERATION_TIMEOUT=120
+Environment=FEDERATION_SYNC_INTERVAL=300
+
+# ─────────────────────────────────────────────────────────────────────────────
+# RESOURCES
+# ─────────────────────────────────────────────────────────────────────────────
+Environment=RESOURCE_CACHE_SIZE=1000
+Environment=RESOURCE_CACHE_TTL=3600
+Environment=MAX_RESOURCE_SIZE=10485760
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TOOLS
+# ─────────────────────────────────────────────────────────────────────────────
+Environment=TOOL_TIMEOUT=60
+Environment=MAX_TOOL_RETRIES=3
+Environment=TOOL_RATE_LIMIT=100
+Environment=TOOL_CONCURRENT_LIMIT=10
+Environment=GATEWAY_TOOL_NAME_SEPARATOR=-
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PROMPTS
+# ─────────────────────────────────────────────────────────────────────────────
+Environment=PROMPT_CACHE_SIZE=100
+Environment=MAX_PROMPT_SIZE=102400
+Environment=PROMPT_RENDER_TIMEOUT=10
+
+# ─────────────────────────────────────────────────────────────────────────────
+# HEALTH CHECKS
+# ─────────────────────────────────────────────────────────────────────────────
+Environment=HEALTH_CHECK_INTERVAL=60
+Environment=HEALTH_CHECK_TIMEOUT=10
+Environment=UNHEALTHY_THRESHOLD=5
+Environment=GATEWAY_VALIDATION_TIMEOUT=5
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CACHE BACKEND
+# ─────────────────────────────────────────────────────────────────────────────
+Environment=CACHE_TYPE=database
+Environment=CACHE_PREFIX=mcpgw:
+Environment=SESSION_TTL=3600
+Environment=MESSAGE_TTL=600
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PLUGIN CONFIGURATION
+# ─────────────────────────────────────────────────────────────────────────────
+Environment=PLUGINS_ENABLED=false
+Environment=PLUGINS_MTLS_VERIFY=true
+Environment=PLUGINS_MTLS_CHECK_HOSTNAME=true
+Environment=PLUGINS_CLI_COMPLETION=false
+
+# ─────────────────────────────────────────────────────────────────────────────
+# HTTP RETRY CONFIGURATION
+# ─────────────────────────────────────────────────────────────────────────────
+Environment=RETRY_MAX_ATTEMPTS=3
+Environment=RETRY_BASE_DELAY=1.0
+Environment=RETRY_MAX_DELAY=60
+Environment=RETRY_JITTER_MAX=0.5
+
+# ─────────────────────────────────────────────────────────────────────────────
+# OPENTELEMETRY OBSERVABILITY
+# ─────────────────────────────────────────────────────────────────────────────
+Environment=OTEL_ENABLE_OBSERVABILITY=false
+
+# ─────────────────────────────────────────────────────────────────────────────
+# WELL-KNOWN URI CONFIGURATION
+# ─────────────────────────────────────────────────────────────────────────────
+Environment=WELL_KNOWN_ENABLED=true
+Environment=WELL_KNOWN_CACHE_MAX_AGE=3600
+
+# ─────────────────────────────────────────────────────────────────────────────
+# HEADER PASSTHROUGH (DISABLED BY DEFAULT - SECURITY RISK)
+# ─────────────────────────────────────────────────────────────────────────────
+Environment=ENABLE_HEADER_PASSTHROUGH=false
+Environment=ENABLE_OVERWRITE_BASE_HEADERS=false
+
+# ─────────────────────────────────────────────────────────────────────────────
+# LOAD SECRETS FROM ENVIRONMENT FILE
+# Contains: JWT_SECRET_KEY, ADMIN_PASSWORD, AUTH_ENCRYPTION_SECRET, etc.
+# ─────────────────────────────────────────────────────────────────────────────
+EnvironmentFile=%h/.config/mcp-context-forge/secrets.env
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🔧 HEALTH CHECK
+# ═════════════════════════════════════════════════════════════════════════════
+HealthCmd=wget --no-verbose --tries=1 --spider --timeout=10 http://localhost:4444/health || exit 1
+HealthInterval=30s
+HealthTimeout=10s
+HealthRetries=3
+HealthStartPeriod=120s
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🚀 SERVICE
+# ═════════════════════════════════════════════════════════════════════════════
+[Service]
+Slice=llm.slice
+TimeoutStartSec=300
+Restart=on-failure
+RestartSec=10
+
+# Create required directories
+ExecStartPre=/usr/bin/mkdir -p %h/.local/share/mcp-context-forge
+ExecStartPre=/usr/bin/mkdir -p %h/.config/mcp-context-forge
+
+# Initialize database (first run only)
+ExecStartPre=/usr/bin/sh -c '\
+  if [ ! -f %h/.local/share/mcp-context-forge/mcp.db ]; then \
+    echo "MCP Context Forge: Initializing database..."; \
+  fi'
+
+# Startup logging
+ExecStartPost=/usr/bin/sh -c '\
+  echo "═══════════════════════════════════════════════════════════"; \
+  echo "MCP Context Forge: Started successfully"; \
+  echo "═══════════════════════════════════════════════════════════"; \
+  echo ""; \
+  echo "📍 Access Points:"; \
+  echo "  • Admin UI:    http://localhost:4444/admin"; \
+  echo "  • API Docs:    http://localhost:4444/docs"; \
+  echo "  • Health:      http://localhost:4444/health"; \
+  echo "  • External:    https://mcp.blueprint.tail8dd1.ts.net"; \
+  echo ""; \
+  echo "🔐 Authentication:"; \
+  echo "  • Admin User:  admin"; \
+  echo "  • Email:       admin@example.com"; \
+  echo ""; \
+  echo "📊 Database:     POSTGRESQL"; \
+  echo "💾 Cache:        Database"; \
+  echo ""; \
+  echo "═══════════════════════════════════════════════════════════"; \
+'
+
+# Graceful shutdown
+TimeoutStopSec=30
+
+[Install]
+# No WantedBy - dependencies via After/Requires
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 📝 ARCHITECTURE NOTES - MCP Context Forge
+# ═════════════════════════════════════════════════════════════════════════════
+#
+# WHAT IS MCP CONTEXT FORGE?
+#   Enterprise-ready Model Context Protocol Gateway that federates MCP servers,
+#   REST APIs, and AI agents with advanced authentication, observability, and
+#   multi-tenancy support.
+#
+# KEY FEATURES:
+#   🌐 Federation      - Unify multiple MCP servers and REST APIs
+#   🔐 Authentication  - JWT, OAuth, SSO (GitHub, Google, Keycloak, etc.)
+#   🤖 A2A Integration - External AI agent support (OpenAI, Anthropic)
+#   💬 LLM Chat        - Built-in chat interface with multiple providers
+#   🎨 Admin UI        - Real-time management dashboard at /admin
+#   📊 Observability   - OpenTelemetry with Phoenix, Jaeger, Zipkin
+#   🚀 Multi-Transport - HTTP, SSE, WebSocket, stdio
+#   👥 Multi-Tenancy   - Email auth, teams, RBAC
+#   🔌 Plugin System   - Extensible architecture
+#
+# MCP SERVER REGISTRATION:
+#   Individual MCP servers are NOT configured in this file. They are:
+#   1. Pre-configured in mcp-catalog.yml (optional)
+#   2. Registered via Admin UI at /admin
+#   3. Registered via API: POST /gateways
+#
+# DEPENDENCIES:
+#   Required:
+#     - None (SQLite included)
+#   Optional:
+#     - postgres.service    - PostgreSQL database (production)
+#     - mariadb.service     - MariaDB database (alternative)
+#     - redis.service       - Distributed caching
+#     - tailscaled.service  - External access via Tailscale
+#
+# CONFIGURATION:
+#   - Service config in blueprint-config.json
+#   - Secrets in %h/.config/mcp-context-forge/secrets.env
+#   - MCP servers in %h/.config/mcp-context-forge/mcp-catalog.yml (optional)
+#   - JWT keys in %h/.config/mcp-context-forge/jwt/ (for asymmetric algorithms)
+#
+# VOLUMES:
+#   - %h/.local/share/mcp-context-forge    - Database, logs (persistent)
+#   - %h/.config/mcp-context-forge  - Secrets, catalog, JWT keys (read-only)
+#
+# SECURITY:
+#   - Change default passwords in secrets.env
+#   - Use PostgreSQL/MariaDB for production (not SQLite)
+#   - Enable HTTPS (SECURE_COOKIES=true)
+#   - Configure SSO for production
+#   - Regular backups of %h/.local/share/mcp-context-forge
+#
+# MONITORING:
+#   - Health endpoint:  /health
+#   - API docs:         /docs
+#   - Admin UI:         /admin
+#   - External access:  https://mcp.blueprint.tail8dd1.ts.net
+#
+# DOCUMENTATION:
+#   - Official docs: https://ibm.github.io/mcp-context-forge/
+#   - GitHub:        https://github.com/IBM/mcp-context-forge
+#
+# ═════════════════════════════════════════════════════════════════════════════

@@ -1,0 +1,94 @@
+# ═════════════════════════════════════════════════════════════════════════════
+# 🔊  v
+# Release: 
+# Image: 
+# 
+# ═════════════════════════════════════════════════════════════════════════════
+
+[Unit]
+Description=
+After=network-online.target llm.network.service
+Requires=llm.network.service
+
+[Container]
+Image=
+AutoUpdate=registry
+ContainerName=
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🌐 NETWORK
+# ═════════════════════════════════════════════════════════════════════════════
+Network=llm.network
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 📍 PUBLISHED PORT (for OpenWebUI to access)
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 💾 VOLUME (for caching voice models)
+# ═════════════════════════════════════════════════════════════════════════════
+Volume=:/data:Z
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🌍 ENVIRONMENT - Auto-generated from configuration
+# ═════════════════════════════════════════════════════════════════════════════
+
+# Default response format
+Environment=DEFAULT_RESPONSE_FORMAT=
+
+# Speech speed (0.5 = half speed, 2.0 = double speed)
+Environment=DEFAULT_SPEED=
+
+# Default voice (Microsoft Edge neural voice)
+Environment=DEFAULT_VOICE=
+
+# Server configuration
+Environment=PORT=
+Environment=HOST=0.0.0.0
+
+# Logging
+Environment=LOG_LEVEL=
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🔧 HEALTH CHECK
+# ═════════════════════════════════════════════════════════════════════════════
+
+# Primary health check - service responsiveness
+HealthCmd=wget --no-verbose --tries=1 --spider http://localhost:/health || exit 1
+HealthInterval=30s
+HealthTimeout=5s
+HealthRetries=3
+HealthStartPeriod=30s
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🚀 SERVICE
+# ═════════════════════════════════════════════════════════════════════════════
+[Service]
+Slice=llm.slice
+TimeoutStartSec=300
+Restart=on-failure
+RestartSec=10
+
+
+# Startup verification
+ExecStartPost=/bin/sh -c '\
+  echo "Edge-TTS: Waiting for service to be ready..."; \
+  for i in $(seq 1 30); do \
+    if wget --no-verbose --tries=1 --spider --timeout=2 http://localhost:/health 2>/dev/null; then \
+      echo "Edge-TTS: ✓ Service health check passed"; \
+      if wget --no-verbose --tries=1 --spider --timeout=2 http://localhost:/v1/voices 2>/dev/null; then \
+        echo "Edge-TTS: ✓ Voice API available"; \
+        echo "Edge-TTS: Service ready at http://localhost:"; \
+        exit 0; \
+      fi; \
+    fi; \
+    sleep 1; \
+  done; \
+  echo "Edge-TTS: ⚠ Service started but verification incomplete (will retry on first use)"; \
+  exit 0'
+
+[Install]
+# No WantedBy - dependencies via After/Requires
