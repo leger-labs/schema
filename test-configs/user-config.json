@@ -1,0 +1,199 @@
+{
+  "infrastructure": {
+    "network": {
+      "name": "llm",
+      "subnet": "10.89.0.0/24"
+    },
+    "services": {
+      "caddy": {
+        "container_name": "caddy",
+        "hostname": "caddy",
+        "port": 443,
+        "published_port": 443,
+        "bind_address": "0.0.0.0",
+        "external_subdomain": null,
+        "description": "Caddy Reverse Proxy for LLM Services"
+      },
+      "openwebui": {
+        "container_name": "openwebui",
+        "hostname": "openwebui",
+        "port": 8080,
+        "published_port": 3000,
+        "bind_address": "127.0.0.1",
+        "external_subdomain": "ai",
+        "volume": "openwebui.volume",
+        "websocket": true,
+        "description": "Open WebUI - LLM Chat Interface"
+      },
+      "openwebui_postgres": {
+        "container_name": "openwebui-postgres",
+        "hostname": "openwebui-postgres",
+        "port": 5432,
+        "published_port": null,
+        "bind_address": null,
+        "external_subdomain": null,
+        "volume": "openwebui-postgres.volume",
+        "db_name": "openwebui",
+        "db_user": "openwebui",
+        "description": "PostgreSQL for OpenWebUI"
+      },
+      "openwebui_redis": {
+        "container_name": "openwebui-redis",
+        "hostname": "openwebui-redis",
+        "port": 6379,
+        "published_port": null,
+        "bind_address": null,
+        "external_subdomain": null,
+        "volume": "openwebui-redis.volume",
+        "description": "Redis for OpenWebUI"
+      },
+      "litellm": {
+        "container_name": "litellm",
+        "hostname": "litellm",
+        "port": 4000,
+        "published_port": 4000,
+        "bind_address": "127.0.0.1",
+        "external_subdomain": "llm",
+        "description": "LiteLLM - Unified LLM Proxy"
+      },
+      "litellm_postgres": {
+        "container_name": "litellm-postgres",
+        "hostname": "litellm-postgres",
+        "port": 5432,
+        "published_port": null,
+        "bind_address": null,
+        "external_subdomain": null,
+        "volume": "litellm-postgres.volume",
+        "db_name": "litellm",
+        "db_user": "litellm",
+        "description": "PostgreSQL for LiteLLM"
+      },
+      "litellm_redis": {
+        "container_name": "litellm-redis",
+        "hostname": "litellm-redis",
+        "port": 6379,
+        "published_port": null,
+        "bind_address": null,
+        "external_subdomain": null,
+        "volume": "litellm-redis.volume",
+        "description": "Redis for LiteLLM"
+      },
+      "qdrant": {
+        "container_name": "qdrant",
+        "hostname": "qdrant",
+        "port": 6333,
+        "published_port": 6333,
+        "bind_address": "127.0.0.1",
+        "external_subdomain": "qdrant",
+        "volume": "qdrant.volume",
+        "description": "Qdrant Vector Database"
+      },
+      "searxng": {
+        "container_name": "searxng",
+        "hostname": "searxng",
+        "port": 8080,
+        "published_port": 8080,
+        "bind_address": "127.0.0.1",
+        "external_subdomain": "search",
+        "volume": "searxng.volume",
+        "description": "SearXNG Meta-Search Engine"
+      },
+      "searxng_redis": {
+        "container_name": "searxng-redis",
+        "hostname": "searxng-redis",
+        "port": 6379,
+        "published_port": null,
+        "bind_address": null,
+        "external_subdomain": null,
+        "volume": "searxng-redis.volume",
+        "description": "Redis for SearXNG"
+      },
+      "tika": {
+        "container_name": "tika",
+        "hostname": "tika",
+        "port": 9998,
+        "published_port": null,
+        "bind_address": null,
+        "external_subdomain": null,
+        "description": "Apache Tika Document Extraction"
+      },
+      "jupyter": {
+        "container_name": "jupyter",
+        "hostname": "jupyter",
+        "port": 8888,
+        "published_port": 8889,
+        "bind_address": "127.0.0.1",
+        "external_subdomain": "jupyter",
+        "volume": "jupyter.volume",
+        "description": "Jupyter Lab - Code Interpreter"
+      }
+    }
+  },
+  "features": {
+    "rag": true,
+    "web_search": true,
+    "image_generation": false,
+    "speech_to_text": false,
+    "text_to_speech": false,
+    "code_execution": true,
+    "code_interpreter": false,
+    "google_drive": false,
+    "onedrive": false,
+    "oauth_signup": false,
+    "ldap": false,
+    "title_generation": true,
+    "autocomplete_generation": true,
+    "tags_generation": true,
+    "websocket_support": true
+  },
+  "providers": {
+    "vector_db": "qdrant",
+    "rag_embedding": "openai",
+    "content_extraction": "tika",
+    "text_splitter": "recursive",
+    "web_search_engine": "searxng",
+    "web_loader": "requests",
+    "image_engine": "openai",
+    "stt_engine": "openai",
+    "tts_engine": "openai",
+    "code_execution_engine": "jupyter",
+    "code_interpreter_engine": "jupyter",
+    "storage_provider": "",
+    "auth_provider": "local"
+  },
+  "provider_config": {
+    "qdrant_url": "http://qdrant:6333",
+    "qdrant_api_key": "",
+    "qdrant_grpc_port": 6334,
+    "qdrant_prefer_grpc": false,
+    "qdrant_on_disk": true,
+    "rag_embedding_api_key": "",
+    "tika_server_url": "http://tika:9998",
+    "tika_heap_size": "2G",
+    "searxng_query_url": "http://searxng:8080/search?q=<query>",
+    "searxng_base_url": "http://searxng:8080",
+    "searxng_safe_search": 1,
+    "searxng_autocomplete": true,
+    "searxng_max_page": 3,
+    "jupyter_disable_execute_tool": true,
+    "rag_top_k": 5,
+    "chunk_size": 1500,
+    "chunk_overlap": 100,
+    "openwebui_timeout_start": 900
+  },
+  "secrets": {
+    "openwebui_secret_key": "{OPENWEBUI_SECRET_KEY}",
+    "litellm_master_key": "{LITELLM_MASTER_KEY}",
+    "openai_api_key": "{OPENAI_API_KEY}",
+    "anthropic_api_key": "{ANTHROPIC_API_KEY}",
+    "gemini_api_key": "{GEMINI_API_KEY}",
+    "openrouter_api_key": "{OPENROUTER_API_KEY}",
+    "groq_api_key": "{GROQ_API_KEY}",
+    "searxng_secret_key": "{SEARXNG_SECRET_KEY}",
+    "hf_token": "{HF_TOKEN}",
+    "civitai_token": "{CIVITAI_TOKEN}",
+    "mcp_jwt_secret_key": "{JWT_SECRET_KEY}",
+    "mcp_admin_password": "{ADMIN_PASSWORD}",
+    "mcp_auth_encryption_secret": "{AUTH_ENCRYPTION_SECRET}"
+  }
+}
