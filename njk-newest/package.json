@@ -1,0 +1,13 @@
+{
+  "name": "njk-schema-renderer",
+  "version": "1.0.0",
+  "description": "Simple Nunjucks renderer for schema.json format",
+  "type": "module",
+  "main": "render.js",
+  "scripts": {
+    "render": "node render.js"
+  },
+  "dependencies": {
+    "nunjucks": "^3.2.4"
+  }
+}
