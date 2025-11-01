@@ -1,0 +1,118 @@
+
+
+
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# LiteLLM - Unified LLM Proxy# Generated from blueprint-config.json
+# ═════════════════════════════════════════════════════════════════════════════
+
+[Unit]
+Description=LiteLLM - Unified LLM Proxy
+After=network-online.target llm.network.service
+
+
+
+Requires=llm.network.service
+
+
+
+[Container]
+Image=
+AutoUpdate=registry
+ContainerName=litellm
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🌐 NETWORK
+# ═════════════════════════════════════════════════════════════════════════════
+Network=llm.network
+
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 📍 PUBLISHED PORT
+# ═════════════════════════════════════════════════════════════════════════════
+PublishPort=127.0.0.1:4000:4000
+
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 💾 VOLUMES
+# ═════════════════════════════════════════════════════════════════════════════
+Volume=%h/.config/containers/systemd/litellm/litellm.yaml:/app/config.yaml:ro,Z
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🌍 ENVIRONMENT
+# ═════════════════════════════════════════════════════════════════════════════
+# LiteLLM Master Key
+Environment=LITELLM_MASTER_KEY=
+
+# Database connection
+Environment=DATABASE_URL=postgresql://litellm@litellm-postgres:5432/litellm
+
+# Redis connection
+Environment=REDIS_HOST=litellm-redis
+Environment=REDIS_PORT=6379
+
+# Settings
+Environment=STORE_MODEL_IN_DB=true
+Environment=USE_AIOHTTP_TRANSPORT=true
+
+# API Keys
+Environment=OPENAI_API_KEY=
+Environment=ANTHROPIC_API_KEY=
+Environment=GEMINI_API_KEY=
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🔧 HEALTH CHECK
+# ═════════════════════════════════════════════════════════════════════════════
+HealthCmd=curl -f http://localhost:4000/health/readiness || exit 1
+HealthInterval=30s
+HealthTimeout=10s
+HealthRetries=3
+HealthStartPeriod=30s
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🚀 SERVICE
+# ═════════════════════════════════════════════════════════════════════════════
+[Service]
+Slice=llm.slice
+TimeoutStartSec=300
+Restart=on-failure
+RestartSec=10
+
+# Add execution command
+ExecStart=/usr/bin/podman start litellm
+ExecStartPre=-/usr/bin/podman stop litellm
+ExecStartPre=-/usr/bin/podman rm litellm
+
+# Log startup info
+ExecStartPost=/usr/bin/echo "LiteLLM: Started successfully at http://litellm:4000"
+
+[Install]
+# No WantedBy - dependencies via After/Requires
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 📝 ARCHITECTURE NOTES - LiteLLM
+# ═════════════════════════════════════════════════════════════════════════════
+#
+# DEPENDENCIES:
+#   - litellm_postgres (database for model configs)
+#   - litellm_redis (caching and rate limiting)
+#
+# CONFIGURATION:
+#   - Models defined in litellm.yaml (mounted as volume)
+#   - Database auto-migrates on startup
+#   - Supports both cloud and local models via llama-swap
+#
+# INTEGRATION:
+#   - OpenWebUI uses this as primary LLM backend
+#   - Jupyter uses this for notebook-intelligence
+#   - All task models (title gen, tags gen) route through here
+#
+# MONITORING:
+#   - Health endpoint: /health/readiness
+#   - Metrics endpoint: /metrics (if enabled)
+#   - Dashboard: https://llm.blueprint.tail8dd1.ts.net (via Caddy)
+#
+# ═════════════════════════════════════════════════════════════════════════════

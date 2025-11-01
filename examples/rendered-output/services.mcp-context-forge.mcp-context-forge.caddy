@@ -1,0 +1,161 @@
+# ═════════════════════════════════════════════════════════════════════════════
+# MCP Context Forge - Enterprise Model Context Protocol Gateway
+# External Access: https://mcp.blueprint.tail8dd1.ts.net
+# ═════════════════════════════════════════════════════════════════════════════
+
+https://mcp.blueprint.tail8dd1.ts.net {
+    # Main reverse proxy to MCP Context Forge
+    reverse_proxy mcp-context-forge:4444 {
+        # Standard headers
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+        header_up X-Forwarded-Host {host}
+
+        # WebSocket support (for SSE and WebSocket transports)
+        header_up Connection {>Connection}
+        header_up Upgrade {>Upgrade}
+
+        # Timeouts for long-running MCP operations
+        transport http {
+            read_timeout 300s
+            write_timeout 300s
+            dial_timeout 30s
+        }
+    }
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # CORS Configuration for API Access
+    # ─────────────────────────────────────────────────────────────────────────
+    @cors_preflight method OPTIONS
+    handle @cors_preflight {
+        header Access-Control-Allow-Origin *
+        header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+        header Access-Control-Allow-Headers "Authorization, Content-Type, Accept, X-Requested-With"
+        header Access-Control-Max-Age "3600"
+        header Access-Control-Allow-Credentials "true"
+        respond 204
+    }
+
+    # CORS headers for actual requests
+    header {
+        Access-Control-Allow-Origin *
+        Access-Control-Allow-Credentials true
+    }
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Security Headers
+    # ─────────────────────────────────────────────────────────────────────────
+    header {
+        # Remove server identification
+        -Server
+        -X-Powered-By
+
+        # Security headers (unless service provides them)
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
+
+        # Permissions Policy (restrictive for security)
+        Permissions-Policy "geolocation=(), microphone=(), camera=()"
+    }
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Rate Limiting (protect against abuse)
+    # ─────────────────────────────────────────────────────────────────────────
+    # Note: Adjust these limits based on your use case
+    # rate_limit {
+    #     zone mcp_gateway {
+    #         key {remote_host}
+    #         events 100
+    #         window 1m
+    #     }
+    # }
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Request Logging
+    # ─────────────────────────────────────────────────────────────────────────
+    log {
+        output file /var/log/caddy/mcp-context-forge-access.log {
+            roll_size 100MB
+            roll_keep 5
+            roll_keep_for 720h
+        }
+        format json
+        level INFO
+    }
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Error Handling
+    # ─────────────────────────────────────────────────────────────────────────
+    handle_errors {
+        @5xx expression `{err.status_code} >= 500 && {err.status_code} < 600`
+        handle @5xx {
+            respond "MCP Context Forge temporarily unavailable. Please try again later." 503 {
+                close
+            }
+        }
+
+        @4xx expression `{err.status_code} >= 400 && {err.status_code} < 500`
+        handle @4xx {
+            respond "Bad Request - {err.status_code}" {err.status_code} {
+                close
+            }
+        }
+    }
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Additional Routes (if needed)
+    # ─────────────────────────────────────────────────────────────────────────
+
+    # Health check endpoint (bypass auth if needed)
+    handle /health {
+        reverse_proxy mcp-context-forge:4444
+    }
+
+    # API documentation
+    handle /docs* {
+        reverse_proxy mcp-context-forge:4444
+    }
+
+    # OpenAPI spec
+    handle /openapi.json {
+        reverse_proxy mcp-context-forge:4444
+    }
+}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# NOTES:
+# ═════════════════════════════════════════════════════════════════════════════
+#
+# ENDPOINTS:
+#   - Admin UI:     https://mcp.blueprint.tail8dd1.ts.net/admin
+#   - API Docs:     https://mcp.blueprint.tail8dd1.ts.net/docs
+#   - Health:       https://mcp.blueprint.tail8dd1.ts.net/health
+#   - MCP SSE:      https://mcp.blueprint.tail8dd1.ts.net/sse
+#   - MCP WS:       wss://mcp.blueprint.tail8dd1.ts.net/ws
+#
+# AUTHENTICATION:
+#   - The service handles authentication internally
+#   - Use Bearer tokens for API access
+#   - SSO configured in service environment variables
+#
+# MONITORING:
+#   - Access logs: /var/log/caddy/mcp-context-forge-access.log
+#   - Error logs: Caddy's default error log
+#
+# WEBSOCKET SUPPORT:
+#   - Enabled for SSE and WebSocket MCP transports
+#   - Long timeouts (300s) for extended operations
+#
+# CORS:
+#   - Fully enabled for API access from web clients
+#   - Adjust origins if you need to restrict access
+#
+# RATE LIMITING:
+#   - Currently commented out
+#   - Uncomment and adjust if you need protection against abuse
+#
+# ═════════════════════════════════════════════════════════════════════════════

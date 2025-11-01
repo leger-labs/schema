@@ -1,0 +1,111 @@
+# ═════════════════════════════════════════════════════════════════════════════
+# 🔄 LLAMA-SWAP CONFIGURATION
+# Generated from blueprint-config.json → local_inference section
+# ═════════════════════════════════════════════════════════════════════════════
+#
+# This configuration defines the models that llama-swap will manage and route.
+# Models are generated from the local_inference.models section of blueprint-config.json
+#
+# Model groups:
+# ═════════════════════════════════════════════════════════════════════════════
+
+# Server configuration
+server:
+  host: 0.0.0.0
+  port: 
+  log_level: 
+  metrics_max_in_memory: 
+
+# Container runtime
+runtime:
+  podman_sock: unix:///run/podman/podman.sock
+  container_image: 
+  network: llm.network
+
+# Model definitions - auto-generated from blueprint-config.json
+models:
+  - name: qwen2.5-coder:7b
+    display_name: Qwen 2.5 Coder 7B
+    uri: 
+
+    # Context and memory settings
+    ctx_size: 
+    ngl: 
+
+    # Model behavior
+    ttl:   # Time-to-live in seconds (0 = never unload)
+    temp: 
+    threads: 
+
+    # Performance optimization
+    backend: 
+    cache_reuse: 
+    flash_attn: 
+
+    # Hardware configuration
+    vulkan_driver: 
+
+    # Group membership (for swap management)
+    group: coding
+    swap_enabled: false
+
+    # Health check timeout
+    health_check_timeout: 
+
+    # Container port assignment
+    port: NaN
+
+  - name: nomic-embed-text
+    display_name: Nomic Embed Text
+    uri: 
+
+    # Context and memory settings
+    ctx_size: 
+    ngl: 
+
+    # Model behavior
+    ttl:   # Time-to-live in seconds (0 = never unload)
+    temp: 
+    threads: 
+
+    # Performance optimization
+    backend: 
+    cache_reuse: 
+    flash_attn: 
+
+    # Hardware configuration
+    vulkan_driver: 
+
+    # Group membership (for swap management)
+    group: embeddings
+    swap_enabled: false
+
+    # Health check timeout
+    health_check_timeout: 
+
+    # Container port assignment
+    port: NaN
+
+
+# Swap group configuration
+swap_groups:
+
+# Auto-unload configuration
+auto_unload:
+  enabled: 
+  check_interval: 60  # Check every 60 seconds
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 📝 GENERATED MODEL ROSTER
+# ═════════════════════════════════════════════════════════════════════════════
+# qwen2.5-coder:7b: 
+#   - Size: ~GB RAM
+#   - Context:  tokens
+#   - Group: coding
+#   - Quantization: 
+# nomic-embed-text: 
+#   - Size: ~GB RAM
+#   - Context:  tokens
+#   - Group: embeddings
+#   - Quantization: 
+# ═════════════════════════════════════════════════════════════════════════════

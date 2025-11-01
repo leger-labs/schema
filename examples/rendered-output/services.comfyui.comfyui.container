@@ -1,0 +1,140 @@
+# ═════════════════════════════════════════════════════════════════════════════
+# 🎨 COMFYUI - Stable Diffusion Workflow Engine
+# Generated from blueprint-config.json
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+[Unit]
+Description=
+After=network-online.target llm.network.service
+Requires=llm.network.service
+
+[Container]
+Image=
+AutoUpdate=registry
+ContainerName=
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🌐 NETWORK
+# ═════════════════════════════════════════════════════════════════════════════
+Network=llm.network
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 📍 PUBLISHED PORT (for OpenWebUI integration and Caddy proxy)
+# ═════════════════════════════════════════════════════════════════════════════
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 💾 VOLUMES
+# ═════════════════════════════════════════════════════════════════════════════
+# Main workspace volume (outputs, user files, custom nodes)
+Volume=::Z
+
+
+# Models volume (SD checkpoints, VAEs, LoRAs, embeddings)
+Volume=:undefined/models:Z
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🌍 ENVIRONMENT - ComfyUI Configuration
+# ═════════════════════════════════════════════════════════════════════════════
+
+# Workspace directory
+Environment=WORKSPACE=
+
+# Disable auto-update (we manage versions via image tags)
+Environment=AUTO_UPDATE=
+
+# Disable CloudFlare tunnels (we use Tailscale + Caddy)
+Environment=CF_QUICK_TUNNELS=false
+
+# Authentication (disabled for local services per CLAUDE.md)
+Environment=WEB_ENABLE_AUTH=
+
+# ComfyUI server port
+Environment=COMFYUI_PORT_HOST=
+
+# HuggingFace token for model downloads
+
+# CivitAI token for model downloads
+
+# Additional ComfyUI arguments
+
+# Logging
+Environment=LOG_LEVEL=
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🔧 HEALTH CHECK
+# ═════════════════════════════════════════════════════════════════════════════
+
+# ComfyUI API health check
+HealthCmd=wget --no-verbose --tries=1 --spider http://localhost:/system_stats || exit 1
+HealthInterval=30s
+HealthTimeout=5s
+HealthRetries=3
+HealthStartPeriod=30s
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🚀 SERVICE
+# ═════════════════════════════════════════════════════════════════════════════
+[Service]
+Slice=llm.slice
+TimeoutStartSec=900
+Restart=on-failure
+RestartSec=10
+
+
+# Startup verification - ComfyUI takes longer to start (model loading)
+ExecStartPost=/bin/sh -c '\
+  echo "ComfyUI: Waiting for service to be ready..."; \
+  for i in $(seq 1 60); do \
+    if wget --no-verbose --tries=1 --spider --timeout=2 http://localhost:/system_stats 2>/dev/null; then \
+      echo "ComfyUI: ✓ Service health check passed"; \
+      echo "ComfyUI: Service ready at http://localhost:"; \
+      echo "ComfyUI: WebSocket available at ws://localhost:/ws"; \
+      exit 0; \
+    fi; \
+    sleep 2; \
+  done; \
+  echo "ComfyUI: ⚠ Service started but verification incomplete (model loading may still be in progress)"; \
+  exit 0'
+
+[Install]
+# Managed via dependencies - no direct WantedBy
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 📝 ARCHITECTURE NOTES
+# ═════════════════════════════════════════════════════════════════════════════
+#
+# PURPOSE:
+#   ComfyUI provides node-based Stable Diffusion workflows for image generation
+#   Integrates with OpenWebUI when openwebui.features.image_generation is enabled
+#
+# INTEGRATION:
+#   - OpenWebUI: Image generation via API at http://comfyui:
+#   - Caddy: External access at https://.blueprint.tail8dd1.ts.net
+#
+# VOLUMES:
+#   - Workspace: User files, outputs, custom nodes, configurations
+#   - Models: SD checkpoints, VAEs, LoRAs, embeddings (can be large, separate volume)
+#
+# NETWORK:
+#   - Container: :
+#   - Published: : → 
+#   - External: https://.blueprint.tail8dd1.ts.net
+#
+# MODELS:
+#   Default workflow uses FLUX.1 schnell (fast generation):
+#   - Model: 
+#   - VAE: 
+#   - CLIP: , 
+#
+# HARDWARE:
+#   - AMD GPU acceleration handled automatically by platform
+#   - No explicit GPU configuration needed (per CLAUDE.md)
+#
+# ENABLED BY:
+#   - openwebui.features.image_generation = true
+#
+# ═════════════════════════════════════════════════════════════════════════════
