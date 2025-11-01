@@ -12,7 +12,7 @@
 
 import nunjucks from 'nunjucks';
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, statSync } from 'fs';
-import { join, dirname, relative } from 'path';
+import { join, dirname, relative, resolve } from 'path';
 
 // Parse command line arguments
 const args = process.argv.slice(2);
@@ -78,13 +78,51 @@ env.addFilter('fromJson', (str) => {
   }
 });
 
-// Add readFile function to global context
+env.addFilter('capitalize', (str) => {
+  if (!str || typeof str !== 'string') {
+    return str;
+  }
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+});
+
+env.addFilter('lower', (str) => {
+  if (str === null || str === undefined) {
+    return str;
+  }
+  // Convert to string first if it's not already
+  const strValue = typeof str === 'string' ? str : String(str);
+  return strValue.toLowerCase();
+});
+
+// Store current template path for relative resolution
+let currentTemplatePath = null;
+
+// Add readFile function to global context with improved path resolution
 env.addGlobal('readFile', (path) => {
   try {
-    const fullPath = join(templatesDir, path);
-    return readFileSync(fullPath, 'utf-8');
+    let fullPath;
+
+    // If path starts with ../ or ./, resolve relative to current template
+    if (path.startsWith('../') || path.startsWith('./')) {
+      if (currentTemplatePath) {
+        const templateDir = dirname(join(templatesDir, currentTemplatePath));
+        fullPath = resolve(templateDir, path);
+      } else {
+        // Fallback to templates root
+        fullPath = resolve(templatesDir, path);
+      }
+    } else {
+      // Absolute path from templates root
+      fullPath = join(templatesDir, path);
+    }
+
+    const content = readFileSync(fullPath, 'utf-8');
+    return content;
   } catch (e) {
     console.error(`⚠️  Warning: Could not read file ${path}: ${e.message}`);
+    if (currentTemplatePath) {
+      console.error(`    (called from template: ${currentTemplatePath})`);
+    }
     return '{}';
   }
 });
@@ -176,6 +214,13 @@ const context = {
   provider_config: userConfig.provider_config || {},
   secrets: userConfig.secrets || {},
 
+  // Tailscale configuration (referenced by templates)
+  tailscale: {
+    full_hostname: userConfig.tailscale?.full_hostname || 'blueprint.tail8dd1.ts.net',
+    hostname: userConfig.tailscale?.hostname || 'blueprint',
+    tailnet: userConfig.tailscale?.tailnet || 'tail8dd1.ts.net'
+  },
+
   // For templates that reference specific services directly
   openwebui: {
     providers: userConfig.providers || {},
@@ -184,9 +229,15 @@ const context = {
       timeout_start_sec: userConfig.provider_config?.openwebui_timeout_start || 900
     }
   },
-  litellm: {
+  litellm: userConfig.litellm || {
     providers: userConfig.providers || {},
-    features: userConfig.features || {}
+    features: userConfig.features || {},
+    models: [],
+    database_url: "postgresql://litellm@litellm-postgres:5432/litellm",
+    drop_params: true
+  },
+  local_inference: userConfig.local_inference || {
+    models: {}
   },
   qdrant: {
     providers: userConfig.providers || {},
@@ -200,10 +251,43 @@ const context = {
     providers: userConfig.providers || {},
     features: userConfig.features || {}
   },
+  mcp_context_forge: {
+    providers: userConfig.providers || {},
+    features: userConfig.features || {},
+    jwt_algorithm: 'HS256',
+    environment: 'production',
+    log_level: 'INFO'
+  },
 
   // Release catalog is loaded via readFile in templates
   catalog: releaseCatalog
 };
+
+// Validate that all referenced services exist
+function validateContext(context) {
+  const warnings = [];
+
+  // Check if services reference non-existent dependencies
+  Object.entries(context.infrastructure?.services || {}).forEach(([name, service]) => {
+    if (service.requires) {
+      service.requires.forEach(dep => {
+        if (!context.infrastructure.services[dep]) {
+          warnings.push(`Service '${name}' requires '${dep}' but it's not defined`);
+        }
+      });
+    }
+  });
+
+  return warnings;
+}
+
+const contextWarnings = validateContext(context);
+if (contextWarnings.length > 0) {
+  console.log('');
+  console.log('⚠️  Context Warnings:');
+  contextWarnings.forEach(w => console.log(`   ${w}`));
+  console.log('');
+}
 
 // Render templates
 let successCount = 0;
@@ -214,6 +298,9 @@ console.log('');
 
 templateFiles.forEach(({ path, relativePath }) => {
   try {
+    // Set current template path for readFile() resolution
+    currentTemplatePath = path;
+
     // Determine output filename
     // Convert .njk extensions to appropriate output extension
     let outputName = relativePath.replace(/\.njk$/, '');
@@ -241,10 +328,16 @@ templateFiles.forEach(({ path, relativePath }) => {
     console.log(`  ❌ ${relativePath}: ${e.message}`);
     errorCount++;
 
-    // Print stack trace for debugging
+    // Enhanced debugging
     if (process.env.DEBUG) {
+      console.error('\n   Full error:');
       console.error(e.stack);
+      console.error('\n   Template context keys:', Object.keys(context));
+    } else {
+      console.error(`   Run with DEBUG=1 for stack trace`);
     }
+  } finally {
+    currentTemplatePath = null;
   }
 });
 

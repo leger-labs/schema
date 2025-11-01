@@ -1,4 +1,9 @@
 {
+  "tailscale": {
+    "full_hostname": "blueprint.tail8dd1.ts.net",
+    "hostname": "blueprint",
+    "tailnet": "tail8dd1.ts.net"
+  },
   "infrastructure": {
     "network": {
       "name": "llm",
@@ -126,6 +131,46 @@
         "external_subdomain": "jupyter",
         "volume": "jupyter.volume",
         "description": "Jupyter Lab - Code Interpreter"
+      },
+      "mcp_context_forge": {
+        "container_name": "mcp-context-forge",
+        "hostname": "mcp-context-forge",
+        "port": 4444,
+        "published_port": 4444,
+        "bind_address": "127.0.0.1",
+        "external_subdomain": "mcp",
+        "data_dir": "%h/.local/share/mcp-context-forge",
+        "config_dir": "%h/.config/mcp-context-forge",
+        "description": "MCP Context Forge - Enterprise MCP Gateway",
+        "database": "postgresql",
+        "requires": ["mcp_context_forge_postgres"],
+        "environment": "production",
+        "log_level": "INFO",
+        "admin_email": "admin@example.com",
+        "admin_name": "Admin User",
+        "auth_required": true,
+        "jwt_algorithm": "HS256",
+        "secure_cookies": false,
+        "redis_enabled": false,
+        "a2a_enabled": false,
+        "llmchat_enabled": false,
+        "catalog_enabled": false,
+        "ui_enabled": true,
+        "admin_api_enabled": true,
+        "federation_enabled": false,
+        "observability_enabled": false
+      },
+      "mcp_context_forge_postgres": {
+        "container_name": "mcp-context-forge-postgres",
+        "hostname": "mcp-context-forge-postgres",
+        "port": 5432,
+        "published_port": null,
+        "bind_address": null,
+        "external_subdomain": null,
+        "volume": "mcp-context-forge-postgres.volume",
+        "db_name": "mcp",
+        "db_user": "mcp",
+        "description": "PostgreSQL for MCP Context Forge"
       }
     }
   },
@@ -195,5 +240,39 @@
     "mcp_jwt_secret_key": "{JWT_SECRET_KEY}",
     "mcp_admin_password": "{ADMIN_PASSWORD}",
     "mcp_auth_encryption_secret": "{AUTH_ENCRYPTION_SECRET}"
+  },
+  "litellm": {
+    "database_url": "postgresql://litellm@litellm-postgres:5432/litellm",
+    "drop_params": true,
+    "models": [
+      {
+        "name": "gpt-4o",
+        "provider": "openai",
+        "enabled": true,
+        "description": "GPT-4 Optimized"
+      },
+      {
+        "name": "claude-3-5-sonnet-20241022",
+        "provider": "anthropic",
+        "enabled": true,
+        "description": "Claude 3.5 Sonnet"
+      }
+    ]
+  },
+  "local_inference": {
+    "models": {
+      "qwen2.5-coder": {
+        "name": "qwen2.5-coder:7b",
+        "display_name": "Qwen 2.5 Coder 7B",
+        "enabled": true,
+        "group": "coding"
+      },
+      "nomic-embed-text": {
+        "name": "nomic-embed-text",
+        "display_name": "Nomic Embed Text",
+        "enabled": true,
+        "group": "embeddings"
+      }
+    }
   }
 }
