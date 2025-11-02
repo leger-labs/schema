@@ -572,7 +572,7 @@
         "text_splitter": {
           "type": "string",
           "title": "Text Splitter Algorithm",
-          "enum": ["character", "recursive"],
+          "enum": ["character", "recursive", "token", "markdown_header"],
           "default": "recursive",
           "x-category": "Providers",
           "x-display-order": 103,
@@ -584,7 +584,7 @@
         "web_search_engine": {
           "type": "string",
           "title": "Web Search Engine",
-          "enum": ["searxng", "tavily", "brave"],
+          "enum": ["searxng", "tavily", "brave", "google_pse", "serper", "serpapi", "bing", ""],
           "default": "searxng",
           "x-category": "Providers",
           "x-display-order": 110,
@@ -612,7 +612,7 @@
         "web_loader": {
           "type": "string",
           "title": "Web Page Loader",
-          "enum": ["requests", "selenium"],
+          "enum": ["requests", "selenium", "playwright", "safe_web"],
           "default": "requests",
           "x-category": "Providers",
           "x-display-order": 111,
@@ -624,7 +624,7 @@
         "image_engine": {
           "type": "string",
           "title": "Image Generation Engine",
-          "enum": ["openai", "automatic1111", "comfyui"],
+          "enum": ["openai", "automatic1111", "comfyui", "gemini", ""],
           "default": "openai",
           "x-category": "Providers",
           "x-display-order": 120,
@@ -653,7 +653,7 @@
         "stt_engine": {
           "type": "string",
           "title": "Speech-to-Text Engine",
-          "enum": ["openai", "whisper"],
+          "enum": ["openai", "whisper", "azure", "deepgram", ""],
           "default": "openai",
           "x-category": "Providers",
           "x-display-order": 130,
@@ -680,7 +680,7 @@
         "tts_engine": {
           "type": "string",
           "title": "Text-to-Speech Engine",
-          "enum": ["openai", "elevenlabs", "edgetts"],
+          "enum": ["openai", "elevenlabs", "edgetts", "azure", ""],
           "default": "openai",
           "x-category": "Providers",
           "x-display-order": 131,
@@ -768,6 +768,24 @@
       "title": "Provider Configuration",
       "description": "Configuration fields for selected providers (including advanced parameters)",
       "properties": {
+        "webui_name": {
+          "type": "string",
+          "title": "WebUI Instance Name",
+          "description": "The name displayed in the interface header (e.g., 'Leger AI', 'My Company AI')",
+          "default": "Leger AI",
+          "x-category": "Core",
+          "x-display-order": 10
+        },
+
+        "custom_name": {
+          "type": "string",
+          "title": "Custom Instance Label",
+          "description": "Optional label for the instance (e.g., 'Dev', 'Staging', 'Production')",
+          "default": "",
+          "x-category": "Core",
+          "x-display-order": 11
+        },
+
         "qdrant_url": {
           "type": "string",
           "title": "Qdrant URL",
@@ -826,7 +844,31 @@
           "x-category": "Providers",
           "x-display-order": 104
         },
-        
+
+        "chroma_tenant": {
+          "type": "string",
+          "title": "ChromaDB Tenant",
+          "description": "ChromaDB multitenancy tenant name",
+          "default": "default_tenant",
+          "x-depends-on": {
+            "providers.vector_db": "chroma"
+          },
+          "x-category": "Providers",
+          "x-display-order": 105
+        },
+
+        "chroma_database": {
+          "type": "string",
+          "title": "ChromaDB Database",
+          "description": "ChromaDB database name",
+          "default": "default_database",
+          "x-depends-on": {
+            "providers.vector_db": "chroma"
+          },
+          "x-category": "Providers",
+          "x-display-order": 106
+        },
+
         "rag_embedding_api_key": {
           "type": "string",
           "title": "RAG Embedding API Key",
@@ -838,7 +880,31 @@
           "x-category": "Providers",
           "x-display-order": 110
         },
-        
+
+        "rag_embedding_model": {
+          "type": "string",
+          "title": "RAG Embedding Model",
+          "description": "OpenAI embedding model for RAG (e.g., text-embedding-3-small, text-embedding-3-large)",
+          "default": "text-embedding-3-small",
+          "x-depends-on": {
+            "providers.rag_embedding": "openai"
+          },
+          "x-category": "Providers",
+          "x-display-order": 111
+        },
+
+        "ollama_embedding_model": {
+          "type": "string",
+          "title": "Ollama Embedding Model",
+          "description": "Ollama embedding model for RAG (e.g., nomic-embed-text, mxbai-embed-large)",
+          "default": "nomic-embed-text",
+          "x-depends-on": {
+            "providers.rag_embedding": "ollama"
+          },
+          "x-category": "Providers",
+          "x-display-order": 112
+        },
+
         "tika_server_url": {
           "type": "string",
           "title": "Tika Server URL",
@@ -1098,7 +1164,19 @@
           "x-category": "Providers",
           "x-display-order": 180
         },
-        
+
+        "audio_stt_model": {
+          "type": "string",
+          "title": "STT Model",
+          "description": "OpenAI STT model (e.g., whisper-1)",
+          "default": "whisper-1",
+          "x-depends-on": {
+            "providers.stt_engine": "openai"
+          },
+          "x-category": "Providers",
+          "x-display-order": 181
+        },
+
         "edgetts_response_format": {
           "type": "string",
           "title": "Edge TTS Response Format",
@@ -1183,7 +1261,32 @@
           "x-category": "Providers",
           "x-display-order": 210
         },
-        
+
+        "audio_tts_model": {
+          "type": "string",
+          "title": "TTS Model",
+          "description": "OpenAI TTS model (e.g., tts-1, tts-1-hd)",
+          "default": "tts-1",
+          "x-depends-on": {
+            "providers.tts_engine": "openai"
+          },
+          "x-category": "Providers",
+          "x-display-order": 211
+        },
+
+        "audio_tts_voice": {
+          "type": "string",
+          "title": "TTS Voice",
+          "description": "OpenAI TTS voice (alloy, echo, fable, onyx, nova, shimmer)",
+          "default": "alloy",
+          "enum": ["alloy", "echo", "fable", "onyx", "nova", "shimmer"],
+          "x-depends-on": {
+            "providers.tts_engine": "openai"
+          },
+          "x-category": "Providers",
+          "x-display-order": 212
+        },
+
         "jupyter_disable_execute_tool": {
           "type": "boolean",
           "title": "Disable Jupyter Notebook Execute Tool",
@@ -1194,7 +1297,34 @@
           "x-category": "Advanced",
           "x-display-order": 220
         },
-        
+
+        "jupyter_auth_type": {
+          "type": "string",
+          "title": "Jupyter Auth Type",
+          "description": "Jupyter authentication method",
+          "default": "token",
+          "enum": ["token", "password", "none"],
+          "x-depends-on": {
+            "providers.code_execution_engine": "jupyter"
+          },
+          "x-category": "Providers",
+          "x-display-order": 221
+        },
+
+        "jupyter_timeout": {
+          "type": "integer",
+          "title": "Jupyter Timeout (seconds)",
+          "description": "Jupyter execution timeout in seconds",
+          "default": 300,
+          "minimum": 60,
+          "maximum": 1800,
+          "x-depends-on": {
+            "providers.code_execution_engine": "jupyter"
+          },
+          "x-category": "Advanced",
+          "x-display-order": 222
+        },
+
         "e2b_api_key": {
           "type": "string",
           "title": "E2B API Key",
@@ -1245,7 +1375,62 @@
           "x-category": "Advanced",
           "x-display-order": 502
         },
-        
+
+        "task_model_title": {
+          "type": "string",
+          "title": "Task Model: Title Generation",
+          "description": "AI model for generating conversation titles (leave empty for default)",
+          "default": "",
+          "x-depends-on": {
+            "features.title_generation": true
+          },
+          "x-category": "Advanced",
+          "x-display-order": 301
+        },
+
+        "task_model_tags": {
+          "type": "string",
+          "title": "Task Model: Tags Generation",
+          "description": "AI model for generating conversation tags (leave empty for default)",
+          "default": "",
+          "x-depends-on": {
+            "features.tags_generation": true
+          },
+          "x-category": "Advanced",
+          "x-display-order": 302
+        },
+
+        "task_model_query": {
+          "type": "string",
+          "title": "Task Model: Query Generation",
+          "description": "AI model for generating RAG queries (leave empty for default)",
+          "default": "",
+          "x-depends-on": {
+            "features.rag": true
+          },
+          "x-category": "Advanced",
+          "x-display-order": 303
+        },
+
+        "log_level": {
+          "type": "string",
+          "title": "Log Level",
+          "description": "Logging verbosity for OpenWebUI",
+          "default": "INFO",
+          "enum": ["DEBUG", "INFO", "WARNING", "ERROR"],
+          "x-category": "Advanced",
+          "x-display-order": 601
+        },
+
+        "redis_key_prefix": {
+          "type": "string",
+          "title": "Redis Key Prefix",
+          "description": "Redis namespace prefix for OpenWebUI",
+          "default": "open-webui",
+          "x-category": "Advanced",
+          "x-display-order": 610
+        },
+
         "openwebui_timeout_start": {
           "type": "integer",
           "title": "OpenWebUI Startup Timeout",
