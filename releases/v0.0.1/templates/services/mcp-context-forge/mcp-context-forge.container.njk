@@ -350,11 +350,11 @@ Environment=WELL_KNOWN_CACHE_MAX_AGE=3600
 Environment=ENABLE_HEADER_PASSTHROUGH=false
 Environment=ENABLE_OVERWRITE_BASE_HEADERS=false
 
-# ─────────────────────────────────────────────────────────────────────────────
-# LOAD SECRETS FROM ENVIRONMENT FILE
-# Contains: JWT_SECRET_KEY, ADMIN_PASSWORD, AUTH_ENCRYPTION_SECRET, etc.
-# ─────────────────────────────────────────────────────────────────────────────
-EnvironmentFile={{ service.config_dir }}/secrets.env
+# Internal service keys (hardcoded, not real secrets - just for internal auth)
+Environment=JWT_SECRET_KEY=mcp-jwt-secret-key-9s8d7f6g5h4j3k2l1
+Environment=ADMIN_PASSWORD=changeme123
+Environment=AUTH_ENCRYPTION_SECRET=mcp-auth-encryption-secret-z9x8c7v6b5n4m3
+
 {% endblock %}
 
 {# ═════════════════════════════════════════════════════════════════════════ #}

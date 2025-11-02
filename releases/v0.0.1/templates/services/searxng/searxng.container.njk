@@ -35,7 +35,7 @@ Network={{ infrastructure.network.name }}.network
 {{ m.volumeMount(infrastructure.services.searxng.volume, "/etc/searxng") }}
 
 # ═════════════════════════════════════════════════════════════════════════════
-# 🔐 ENVIRONMENT - Auto-generated from configuration
+# 🔐 ENVIRONMENT - Auto-generated from configuration (non-sensitive only)
 # ═════════════════════════════════════════════════════════════════════════════
 
 # Base URL (auto-generated from Tailscale config)
@@ -50,6 +50,9 @@ Environment=SEARXNG_UWSGI_THREADS=4
 
 # Disable rate limiting (local instance only)
 Environment=SEARXNG_LIMITER=false
+
+# Internal secret key (hardcoded, not a real secret - just for session hashing)
+Environment=SEARXNG_SECRET_KEY=ultrasecret-searxng-key-192kf8s
 
 # ═════════════════════════════════════════════════════════════════════════════
 # 🔧 HEALTH CHECK

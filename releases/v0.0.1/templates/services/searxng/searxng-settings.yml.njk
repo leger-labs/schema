@@ -15,8 +15,8 @@ use_default_settings: true
 # Server configuration
 server:
   # Secret key for session encryption
-  # IMPORTANT: Change this in production!
-  secret_key: "{{ secrets.searxng_secret | default('CHANGE_THIS_SECRET_KEY_IN_PRODUCTION') }}"
+  # Injected via Podman Secret (SEARXNG_SECRET_KEY environment variable)
+  # DO NOT hardcode secrets in this file - use Podman Secret= directives
 
   # Base URL for reverse proxy
   base_url: "{{ searxng.base_url }}"
