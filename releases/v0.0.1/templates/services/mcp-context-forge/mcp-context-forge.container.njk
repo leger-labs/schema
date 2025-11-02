@@ -1,3 +1,7 @@
+{# Skip rendering if service not configured #}
+{% if not infrastructure.services.mcp_context_forge %}
+# MCP Context Forge service not configured in this deployment
+{% else %}
 {% extends "../base-container.njk" %}
 {% set catalog = (readFile('../release-catalog.json') | fromJson) -%}
 {% set service_def = catalog.services.mcp_context_forge -%}
@@ -491,3 +495,5 @@ TimeoutStopSec=30
 #
 # ═════════════════════════════════════════════════════════════════════════════
 {% endblock %}
+
+{% endif %}

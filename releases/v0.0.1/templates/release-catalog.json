@@ -1,0 +1,123 @@
+{
+  "release": {
+    "version": "0.0.1",
+    "date": "2025-11-02",
+    "notes": "Initial release with schema v0.0.1 support"
+  },
+  "services": {
+    "caddy": {
+      "name": "Caddy",
+      "version": "2.9.1",
+      "image": "docker.io/library/caddy:2.9.1",
+      "notes": "Reverse proxy with automatic HTTPS"
+    },
+    "cockpit": {
+      "name": "Cockpit",
+      "version": "latest",
+      "image": "quay.io/cockpit/ws:latest",
+      "notes": "Web-based system management"
+    },
+    "openwebui": {
+      "name": "Open WebUI",
+      "version": "0.6.32",
+      "image": "ghcr.io/open-webui/open-webui:0.6.32",
+      "notes": "LLM chat interface"
+    },
+    "openwebui_postgres": {
+      "name": "PostgreSQL (OpenWebUI)",
+      "version": "17",
+      "image": "docker.io/library/postgres:17-alpine",
+      "notes": "Database for OpenWebUI"
+    },
+    "openwebui_redis": {
+      "name": "Redis (OpenWebUI)",
+      "version": "7",
+      "image": "docker.io/library/redis:7-alpine",
+      "notes": "Cache for OpenWebUI"
+    },
+    "litellm": {
+      "name": "LiteLLM",
+      "version": "latest",
+      "image": "ghcr.io/berriai/litellm:latest",
+      "notes": "Unified LLM proxy"
+    },
+    "litellm_postgres": {
+      "name": "PostgreSQL (LiteLLM)",
+      "version": "17",
+      "image": "docker.io/library/postgres:17-alpine",
+      "notes": "Database for LiteLLM"
+    },
+    "litellm_redis": {
+      "name": "Redis (LiteLLM)",
+      "version": "7",
+      "image": "docker.io/library/redis:7-alpine",
+      "notes": "Cache for LiteLLM"
+    },
+    "llama_swap": {
+      "name": "Llama-Swap",
+      "version": "latest",
+      "image": "ghcr.io/leger-labs/llama-swap:latest",
+      "notes": "Local model router"
+    },
+    "qdrant": {
+      "name": "Qdrant",
+      "version": "latest",
+      "image": "docker.io/qdrant/qdrant:latest",
+      "notes": "Vector database"
+    },
+    "searxng": {
+      "name": "SearXNG",
+      "version": "latest",
+      "image": "docker.io/searxng/searxng:latest",
+      "notes": "Meta-search engine"
+    },
+    "searxng_redis": {
+      "name": "Redis (SearXNG)",
+      "version": "7",
+      "image": "docker.io/library/redis:7-alpine",
+      "notes": "Cache for SearXNG"
+    },
+    "tika": {
+      "name": "Apache Tika",
+      "version": "latest",
+      "image": "docker.io/apache/tika:latest",
+      "notes": "Document extraction"
+    },
+    "whisper": {
+      "name": "Faster Whisper",
+      "version": "latest",
+      "image": "ghcr.io/openai/whisper:latest",
+      "notes": "Speech-to-text"
+    },
+    "edgetts": {
+      "name": "Edge TTS",
+      "version": "latest",
+      "image": "ghcr.io/leger-labs/edgetts:latest",
+      "notes": "Text-to-speech"
+    },
+    "comfyui": {
+      "name": "ComfyUI",
+      "version": "latest",
+      "image": "ghcr.io/leger-labs/comfyui:latest",
+      "notes": "Stable Diffusion workflow engine"
+    },
+    "jupyter": {
+      "name": "Jupyter Lab",
+      "version": "latest",
+      "image": "quay.io/jupyter/scipy-notebook:latest",
+      "notes": "Code interpreter"
+    },
+    "mcp_context_forge": {
+      "name": "MCP Context Forge",
+      "version": "latest",
+      "image": "ghcr.io/leger-labs/mcp-context-forge:latest",
+      "notes": "MCP Gateway"
+    },
+    "mcp_context_forge_postgres": {
+      "name": "PostgreSQL (MCP)",
+      "version": "17",
+      "image": "docker.io/library/postgres:17-alpine",
+      "notes": "Database for MCP Context Forge"
+    }
+  }
+}
