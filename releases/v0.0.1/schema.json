@@ -1261,97 +1261,208 @@
     "secrets": {
       "type": "object",
       "title": "Secrets",
-      "description": "Secret template pointers (CLI injects actual values)",
+      "description": "Secret placeholder templates for Podman Quadlet Secret= directives. These NEVER contain actual values - only {PLACEHOLDER} patterns. The leger CLI fetches actual values from Cloudflare KV, stores them in legerd, and creates Podman secrets for runtime injection.",
+      "x-category": "Security",
+      "x-display-order": 500,
       "properties": {
         "openwebui_secret_key": {
           "type": "string",
           "title": "OpenWebUI Secret Key",
+          "description": "Django-style secret key for OpenWebUI session encryption and CSRF protection",
           "default": "{OPENWEBUI_SECRET_KEY}",
-          "x-sensitive": true
+          "x-sensitive": true,
+          "x-secret-type": "token",
+          "x-required-by": ["openwebui"],
+          "x-leger-namespace": "leger/{user-uuid}/openwebui_secret_key"
         },
-        
+
         "litellm_master_key": {
           "type": "string",
           "title": "LiteLLM Master Key",
+          "description": "Master API key for LiteLLM proxy authentication and admin operations",
           "default": "{LITELLM_MASTER_KEY}",
-          "x-sensitive": true
+          "x-sensitive": true,
+          "x-secret-type": "api-key",
+          "x-required-by": ["litellm", "openwebui"],
+          "x-leger-namespace": "leger/{user-uuid}/litellm_master_key"
         },
-        
+
         "openai_api_key": {
           "type": "string",
           "title": "OpenAI API Key",
+          "description": "OpenAI API key for GPT models, embeddings, and speech services",
           "default": "{OPENAI_API_KEY}",
-          "x-sensitive": true
+          "x-sensitive": true,
+          "x-secret-type": "api-key",
+          "x-required-by": ["litellm"],
+          "x-required-when": {
+            "comment": "Required when using OpenAI models in LiteLLM config"
+          },
+          "x-leger-namespace": "leger/{user-uuid}/openai_api_key"
         },
-        
+
         "anthropic_api_key": {
           "type": "string",
           "title": "Anthropic API Key",
+          "description": "Anthropic API key for Claude models via LiteLLM",
           "default": "{ANTHROPIC_API_KEY}",
-          "x-sensitive": true
+          "x-sensitive": true,
+          "x-secret-type": "api-key",
+          "x-required-by": ["litellm"],
+          "x-required-when": {
+            "comment": "Required when using Claude models in LiteLLM config"
+          },
+          "x-leger-namespace": "leger/{user-uuid}/anthropic_api_key"
         },
-        
+
         "gemini_api_key": {
           "type": "string",
           "title": "Google Gemini API Key",
+          "description": "Google Gemini API key for Gemini models via LiteLLM",
           "default": "{GEMINI_API_KEY}",
-          "x-sensitive": true
+          "x-sensitive": true,
+          "x-secret-type": "api-key",
+          "x-required-by": ["litellm"],
+          "x-required-when": {
+            "comment": "Required when using Gemini models in LiteLLM config"
+          },
+          "x-leger-namespace": "leger/{user-uuid}/gemini_api_key"
         },
-        
+
         "openrouter_api_key": {
           "type": "string",
           "title": "OpenRouter API Key",
+          "description": "OpenRouter API key for unified model access via LiteLLM",
           "default": "{OPENROUTER_API_KEY}",
-          "x-sensitive": true
+          "x-sensitive": true,
+          "x-secret-type": "api-key",
+          "x-required-by": ["litellm"],
+          "x-required-when": {
+            "comment": "Required when using OpenRouter models in LiteLLM config"
+          },
+          "x-leger-namespace": "leger/{user-uuid}/openrouter_api_key"
         },
-        
+
         "groq_api_key": {
           "type": "string",
           "title": "Groq API Key",
+          "description": "Groq API key for fast inference via LiteLLM",
           "default": "{GROQ_API_KEY}",
-          "x-sensitive": true
+          "x-sensitive": true,
+          "x-secret-type": "api-key",
+          "x-required-by": ["litellm"],
+          "x-required-when": {
+            "comment": "Required when using Groq models in LiteLLM config"
+          },
+          "x-leger-namespace": "leger/{user-uuid}/groq_api_key"
         },
-        
+
         "searxng_secret_key": {
           "type": "string",
           "title": "SearXNG Secret Key",
+          "description": "Secret key for SearXNG session encryption and result hashing",
           "default": "{SEARXNG_SECRET_KEY}",
-          "x-sensitive": true
+          "x-sensitive": true,
+          "x-secret-type": "token",
+          "x-required-by": ["searxng"],
+          "x-required-when": {
+            "providers.web_search_engine": "searxng"
+          },
+          "x-leger-namespace": "leger/{user-uuid}/searxng_secret_key"
         },
-        
+
         "hf_token": {
           "type": "string",
           "title": "HuggingFace API Token",
+          "description": "HuggingFace token for model downloads in ComfyUI",
           "default": "{HF_TOKEN}",
-          "x-sensitive": true
+          "x-sensitive": true,
+          "x-secret-type": "token",
+          "x-required-by": ["comfyui"],
+          "x-required-when": {
+            "providers.image_engine": "comfyui"
+          },
+          "x-leger-namespace": "leger/{user-uuid}/hf_token"
         },
-        
+
         "civitai_token": {
           "type": "string",
           "title": "CivitAI API Token",
+          "description": "CivitAI token for model downloads in ComfyUI",
           "default": "{CIVITAI_TOKEN}",
-          "x-sensitive": true
+          "x-sensitive": true,
+          "x-secret-type": "token",
+          "x-required-by": ["comfyui"],
+          "x-required-when": {
+            "providers.image_engine": "comfyui"
+          },
+          "x-leger-namespace": "leger/{user-uuid}/civitai_token"
         },
-        
+
         "mcp_jwt_secret_key": {
           "type": "string",
           "title": "MCP JWT Secret Key",
+          "description": "JWT signing secret for MCP Context Forge authentication",
           "default": "{JWT_SECRET_KEY}",
-          "x-sensitive": true
+          "x-sensitive": true,
+          "x-secret-type": "token",
+          "x-required-by": ["mcp_context_forge"],
+          "x-leger-namespace": "leger/{user-uuid}/mcp_jwt_secret_key"
         },
-        
+
         "mcp_admin_password": {
           "type": "string",
           "title": "MCP Admin Password",
+          "description": "Admin password for MCP Context Forge administrative access",
           "default": "{ADMIN_PASSWORD}",
-          "x-sensitive": true
+          "x-sensitive": true,
+          "x-secret-type": "password",
+          "x-required-by": ["mcp_context_forge"],
+          "x-leger-namespace": "leger/{user-uuid}/mcp_admin_password"
         },
-        
+
         "mcp_auth_encryption_secret": {
           "type": "string",
           "title": "MCP Auth Encryption Secret",
+          "description": "Encryption key for MCP Context Forge credential storage",
           "default": "{AUTH_ENCRYPTION_SECRET}",
-          "x-sensitive": true
+          "x-sensitive": true,
+          "x-secret-type": "token",
+          "x-required-by": ["mcp_context_forge"],
+          "x-leger-namespace": "leger/{user-uuid}/mcp_auth_encryption_secret"
+        },
+
+        "openwebui_postgres_password": {
+          "type": "string",
+          "title": "OpenWebUI PostgreSQL Password",
+          "description": "PostgreSQL password for OpenWebUI database",
+          "default": "{OPENWEBUI_POSTGRES_PASSWORD}",
+          "x-sensitive": true,
+          "x-secret-type": "password",
+          "x-required-by": ["openwebui_postgres"],
+          "x-leger-namespace": "leger/{user-uuid}/openwebui_postgres_password"
+        },
+
+        "litellm_postgres_password": {
+          "type": "string",
+          "title": "LiteLLM PostgreSQL Password",
+          "description": "PostgreSQL password for LiteLLM database",
+          "default": "{LITELLM_POSTGRES_PASSWORD}",
+          "x-sensitive": true,
+          "x-secret-type": "password",
+          "x-required-by": ["litellm_postgres"],
+          "x-leger-namespace": "leger/{user-uuid}/litellm_postgres_password"
+        },
+
+        "mcp_postgres_password": {
+          "type": "string",
+          "title": "MCP PostgreSQL Password",
+          "description": "PostgreSQL password for MCP Context Forge database",
+          "default": "{MCP_POSTGRES_PASSWORD}",
+          "x-sensitive": true,
+          "x-secret-type": "password",
+          "x-required-by": ["mcp_context_forge_postgres"],
+          "x-leger-namespace": "leger/{user-uuid}/mcp_postgres_password"
         }
       }
     }

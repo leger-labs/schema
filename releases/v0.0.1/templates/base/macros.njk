@@ -111,6 +111,84 @@ Environment=REDIS_ARGS=--save 60 1 --loglevel warning
 {% endmacro %}
 
 {# ═════════════════════════════════════════════════════════════════════════ #}
+{# SECRETS MACROS - Podman Secret Injection                                   #}
+{# These macros generate Secret= directives for Podman Quadlet                #}
+{# NEVER use Environment= for sensitive data - use these macros instead       #}
+{# ═════════════════════════════════════════════════════════════════════════ #}
+
+{# Single secret injection as environment variable #}
+{# Usage: {{ m.secret("openai_api_key", "OPENAI_API_KEY") }} #}
+{% macro secret(secret_name, env_target) %}
+Secret={{ secret_name }},type=env,target={{ env_target }}
+{% endmacro %}
+
+{# Single secret injection as file mount #}
+{# Usage: {{ m.secretFile("tls_cert", "/etc/ssl/cert.pem") }} #}
+{% macro secretFile(secret_name, file_target) %}
+Secret={{ secret_name }},type=mount,target={{ file_target }}
+{% endmacro %}
+
+{# Inject LiteLLM API provider secrets (all LLM provider keys) #}
+{# Usage: {{ m.litellmSecrets() }} #}
+{% macro litellmSecrets() %}
+# LiteLLM Master Key
+Secret=litellm_master_key,type=env,target=LITELLM_MASTER_KEY
+
+# LLM Provider API Keys (conditionally injected based on usage)
+Secret=openai_api_key,type=env,target=OPENAI_API_KEY
+Secret=anthropic_api_key,type=env,target=ANTHROPIC_API_KEY
+Secret=gemini_api_key,type=env,target=GEMINI_API_KEY
+Secret=openrouter_api_key,type=env,target=OPENROUTER_API_KEY
+Secret=groq_api_key,type=env,target=GROQ_API_KEY
+{% endmacro %}
+
+{# Inject OpenWebUI secret key #}
+{# Usage: {{ m.openwebuiSecrets() }} #}
+{% macro openwebuiSecrets() %}
+# OpenWebUI Secret Key
+Secret=openwebui_secret_key,type=env,target=WEBUI_SECRET_KEY
+
+# LiteLLM API Key (for backend communication)
+Secret=litellm_master_key,type=env,target=OPENAI_API_KEY
+{% endmacro %}
+
+{# Inject SearXNG secret key #}
+{# Usage: {{ m.searxngSecrets() }} #}
+{% macro searxngSecrets() %}
+# SearXNG Secret Key
+Secret=searxng_secret_key,type=env,target=SEARXNG_SECRET_KEY
+{% endmacro %}
+
+{# Inject MCP Context Forge secrets #}
+{# Usage: {{ m.mcpSecrets() }} #}
+{% macro mcpSecrets() %}
+# MCP JWT Secret
+Secret=mcp_jwt_secret_key,type=env,target=JWT_SECRET_KEY
+
+# MCP Admin Password
+Secret=mcp_admin_password,type=env,target=ADMIN_PASSWORD
+
+# MCP Auth Encryption Secret
+Secret=mcp_auth_encryption_secret,type=env,target=AUTH_ENCRYPTION_SECRET
+{% endmacro %}
+
+{# Inject PostgreSQL password secret #}
+{# Usage: {{ m.postgresSecret("openwebui_postgres_password", "POSTGRES_PASSWORD") }} #}
+{% macro postgresSecret(secret_name, env_target="POSTGRES_PASSWORD") %}
+Secret={{ secret_name }},type=env,target={{ env_target }}
+{% endmacro %}
+
+{# Inject ComfyUI model download tokens #}
+{# Usage: {{ m.comfyuiSecrets() }} #}
+{% macro comfyuiSecrets() %}
+# HuggingFace Token
+Secret=hf_token,type=env,target=HF_TOKEN
+
+# CivitAI Token
+Secret=civitai_token,type=env,target=CIVITAI_TOKEN
+{% endmacro %}
+
+{# ═════════════════════════════════════════════════════════════════════════ #}
 {# ENVIRONMENT MACROS                                                         #}
 {# ═════════════════════════════════════════════════════════════════════════ #}
 
@@ -124,10 +202,9 @@ Environment=DATABASE_URL=postgresql://{{ service.db_user }}@{{ service.hostname 
 Environment=REDIS_URL=redis://{{ service.hostname }}:{{ service.port }}/{{ db }}
 {% endmacro %}
 
-{# OpenAI-compatible endpoint #}
-{% macro openaiEndpoint(service, api_key) %}
+{# OpenAI-compatible endpoint (NEVER use for API keys - use secrets instead) #}
+{% macro openaiEndpoint(service) %}
 Environment=OPENAI_API_BASE_URL=http://{{ service.hostname }}:{{ service.port }}/v1
-Environment=OPENAI_API_KEY={{ api_key }}
 {% endmacro %}
 
 {# ═════════════════════════════════════════════════════════════════════════ #}
@@ -239,7 +316,7 @@ ExecStartPre=-/usr/bin/sh -c '\
 {# USAGE EXAMPLES                                                             #}
 {# ═════════════════════════════════════════════════════════════════════════ #}
 
-{# 
+{#
 Import this file at the top of your template:
 {% import "macros.njk" as m %}
 
@@ -258,18 +335,35 @@ Use macros in your templates:
 4. Health Check:
 {{ m.healthCheck(4000, "/health/readiness") }}
 
-5. Environment Variables:
+5. Secrets (CRITICAL - Use for ALL sensitive data):
+# Single secret
+{{ m.secret("openai_api_key", "OPENAI_API_KEY") }}
+
+# Service-specific secret bundles
+{{ m.litellmSecrets() }}
+{{ m.openwebuiSecrets() }}
+{{ m.searxngSecrets() }}
+{{ m.mcpSecrets() }}
+{{ m.comfyuiSecrets() }}
+
+# PostgreSQL password
+{{ m.postgresSecret("openwebui_postgres_password") }}
+
+# File-based secret (TLS cert, SSH key, etc.)
+{{ m.secretFile("tls_cert", "/etc/ssl/cert.pem") }}
+
+6. Environment Variables (Non-sensitive only):
 {{ m.databaseURL(postgres_service) }}
 {{ m.redisURL(redis_service, db=2) }}
-{{ m.openaiEndpoint(litellm_service, api_key) }}
+{{ m.openaiEndpoint(litellm_service) }}
 
-6. Caddy Reverse Proxy:
+7. Caddy Reverse Proxy:
 {{ m.reverseProxy(service, tailscale.full_hostname) }}
 
-7. Service Section:
+8. Service Section:
 {{ m.serviceSection(timeout=600) }}
 
-8. Conditional Rendering:
+9. Conditional Rendering:
 {% call m.ifEnabled(service) %}
   # This only renders if service.enabled is true
   [Container]

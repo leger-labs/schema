@@ -56,10 +56,20 @@ PublishPort={{ bind | default("127.0.0.1") }}:{{ published_port }}:{{ port }}
 {% endblock %}
 
 # ═════════════════════════════════════════════════════════════════════════════
-# 🌍 ENVIRONMENT
+# 🌍 ENVIRONMENT (Non-sensitive configuration only)
 # ═════════════════════════════════════════════════════════════════════════════
 {% block environment %}
 {# Override in child templates to add environment variables #}
+{# CRITICAL: NEVER put sensitive data here - use the secrets block instead #}
+{% endblock %}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 🔐 SECRETS (Podman Secret Injection)
+# ═════════════════════════════════════════════════════════════════════════════
+{% block secrets %}
+{# Override in child templates to add Secret= directives #}
+{# Format: Secret=<name>,type=env,target=<ENV_VAR> #}
+{# These are managed by: leger secrets sync && leger deploy install #}
 {% endblock %}
 
 # ═════════════════════════════════════════════════════════════════════════════

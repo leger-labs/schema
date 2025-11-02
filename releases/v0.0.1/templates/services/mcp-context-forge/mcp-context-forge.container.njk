@@ -350,11 +350,23 @@ Environment=WELL_KNOWN_CACHE_MAX_AGE=3600
 Environment=ENABLE_HEADER_PASSTHROUGH=false
 Environment=ENABLE_OVERWRITE_BASE_HEADERS=false
 
-# ─────────────────────────────────────────────────────────────────────────────
-# LOAD SECRETS FROM ENVIRONMENT FILE
-# Contains: JWT_SECRET_KEY, ADMIN_PASSWORD, AUTH_ENCRYPTION_SECRET, etc.
-# ─────────────────────────────────────────────────────────────────────────────
-EnvironmentFile={{ service.config_dir }}/secrets.env
+{% endblock %}
+
+{# ═════════════════════════════════════════════════════════════════════════ #}
+{# SECRETS - Injected via Podman Secrets (NEVER in EnvironmentFile)          #}
+{# ═════════════════════════════════════════════════════════════════════════ #}
+{% block secrets %}
+# ═════════════════════════════════════════════════════════════════════════════
+# 🔐 SECRETS - Injected via Podman Secrets (NEVER use Environment= for these)
+# ═════════════════════════════════════════════════════════════════════════════
+# MCP JWT Secret Key
+Secret=mcp_jwt_secret_key,type=env,target=JWT_SECRET_KEY
+
+# MCP Admin Password
+Secret=mcp_admin_password,type=env,target=ADMIN_PASSWORD
+
+# MCP Auth Encryption Secret
+Secret=mcp_auth_encryption_secret,type=env,target=AUTH_ENCRYPTION_SECRET
 {% endblock %}
 
 {# ═════════════════════════════════════════════════════════════════════════ #}
