@@ -35,7 +35,7 @@ Wants={{ infrastructure.services[dep].container_name }}.service
 Volume=%h/.config/containers/systemd/litellm/litellm.yaml:/app/config.yaml:ro,Z
 {% endblock %}
 
-{# Add LiteLLM environment variables (non-sensitive only) #}
+{# Add LiteLLM environment variables #}
 {% block environment %}
 # Database connection
 Environment=DATABASE_URL={{ litellm.database_url }}
@@ -47,22 +47,24 @@ Environment=REDIS_PORT={{ infrastructure.services.litellm_redis.port }}
 # Settings
 Environment=STORE_MODEL_IN_DB=true
 Environment=USE_AIOHTTP_TRANSPORT=true
+
+# Internal Master Key (hardcoded, not a real secret - just for OpenWebUI auth)
+Environment=LITELLM_MASTER_KEY=sk-1234
 {% endblock %}
 
-{# Secrets block - Uses Podman Secret= directives for secure injection #}
+{# Secrets block - Real external cloud provider API keys only #}
 {% block secrets %}
 # ═════════════════════════════════════════════════════════════════════════════
-# 🔐 SECRETS - Injected via Podman Secrets (NEVER use Environment= for these)
+# 🔐 EXTERNAL API SECRETS - Real cloud provider keys from Podman Secrets
 # ═════════════════════════════════════════════════════════════════════════════
-# LiteLLM Master Key
-Secret=litellm_master_key,type=env,target=LITELLM_MASTER_KEY
-
-# LLM Provider API Keys (conditionally injected based on usage)
+# LLM Provider API Keys (registered at external cloud providers)
 Secret=openai_api_key,type=env,target=OPENAI_API_KEY
 Secret=anthropic_api_key,type=env,target=ANTHROPIC_API_KEY
 Secret=gemini_api_key,type=env,target=GEMINI_API_KEY
-Secret=openrouter_api_key,type=env,target=OPENROUTER_API_KEY
 Secret=groq_api_key,type=env,target=GROQ_API_KEY
+Secret=mistral_api_key,type=env,target=MISTRAL_API_KEY
+Secret=openrouter_api_key,type=env,target=OPENROUTER_API_KEY
+Secret=perplexity_api_key,type=env,target=PERPLEXITY_API_KEY
 {% endblock %}
 
 {# Override default health check with LiteLLM-specific endpoint #}

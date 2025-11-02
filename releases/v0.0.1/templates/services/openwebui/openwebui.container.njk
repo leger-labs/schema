@@ -62,18 +62,13 @@ Network={{ network.name }}.network
 {{ m.volumeMount(service.volume, "/app/backend/data") }}
 
 # ═════════════════════════════════════════════════════════════════════════════
-# 🔐 ENVIRONMENT - Loaded from dedicated env file (non-sensitive config only)
+# 🔐 ENVIRONMENT - Loaded from dedicated env file
 # ═════════════════════════════════════════════════════════════════════════════
 EnvironmentFile=%h/.config/containers/systemd/openwebui/openwebui.env
 
-# ═════════════════════════════════════════════════════════════════════════════
-# 🔐 SECRETS - Injected via Podman Secrets (NEVER in Environment or .env file)
-# ═════════════════════════════════════════════════════════════════════════════
-# OpenWebUI Secret Key
-Secret=openwebui_secret_key,type=env,target=WEBUI_SECRET_KEY
-
-# LiteLLM API Key (for backend communication)
-Secret=litellm_master_key,type=env,target=OPENAI_API_KEY
+# Internal service keys (hardcoded, not real secrets - just for internal auth)
+Environment=WEBUI_SECRET_KEY=t0p-secret-83kf92mf023
+Environment=OPENAI_API_KEY=sk-1234
 
 # ═════════════════════════════════════════════════════════════════════════════
 # 🔧 HEALTH CHECK - Using macro

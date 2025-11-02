@@ -51,11 +51,8 @@ Environment=SEARXNG_UWSGI_THREADS=4
 # Disable rate limiting (local instance only)
 Environment=SEARXNG_LIMITER=false
 
-# ═════════════════════════════════════════════════════════════════════════════
-# 🔐 SECRETS - Injected via Podman Secrets (NEVER use Environment= for these)
-# ═════════════════════════════════════════════════════════════════════════════
-# SearXNG Secret Key
-Secret=searxng_secret_key,type=env,target=SEARXNG_SECRET_KEY
+# Internal secret key (hardcoded, not a real secret - just for session hashing)
+Environment=SEARXNG_SECRET_KEY=ultrasecret-searxng-key-192kf8s
 
 # ═════════════════════════════════════════════════════════════════════════════
 # 🔧 HEALTH CHECK
