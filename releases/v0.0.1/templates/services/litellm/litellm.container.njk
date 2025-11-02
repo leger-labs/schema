@@ -52,19 +52,64 @@ Environment=USE_AIOHTTP_TRANSPORT=true
 Environment=LITELLM_MASTER_KEY=sk-1234
 {% endblock %}
 
-{# Secrets block - Real external cloud provider API keys only #}
+{# Secrets block - Auto-generated based on resolved cloud models #}
 {% block secrets %}
 # ═════════════════════════════════════════════════════════════════════════════
-# 🔐 EXTERNAL API SECRETS - Real cloud provider keys from Podman Secrets
+# 🔐 EXTERNAL API SECRETS
+# Auto-generated based on resolved cloud models
+# Actual secret values synced via: leger secrets sync
 # ═════════════════════════════════════════════════════════════════════════════
-# LLM Provider API Keys (registered at external cloud providers)
+
+{# Check which providers are used and generate corresponding Secret= directives #}
+{% set has_openai = false %}
+{% set has_anthropic = false %}
+{% set has_gemini = false %}
+{% set has_groq = false %}
+{% set has_mistral = false %}
+{% set has_openrouter = false %}
+{% set has_cohere = false %}
+{% set has_deepseek = false %}
+{% set has_perplexity = false %}
+
+{% for model in litellm.models %}
+  {% if model.provider == 'openai' %}{% set has_openai = true %}{% endif %}
+  {% if model.provider == 'anthropic' %}{% set has_anthropic = true %}{% endif %}
+  {% if model.provider == 'gemini' %}{% set has_gemini = true %}{% endif %}
+  {% if model.provider == 'groq' %}{% set has_groq = true %}{% endif %}
+  {% if model.provider == 'mistral' %}{% set has_mistral = true %}{% endif %}
+  {% if model.provider == 'openrouter' %}{% set has_openrouter = true %}{% endif %}
+  {% if model.provider == 'cohere' %}{% set has_cohere = true %}{% endif %}
+  {% if model.provider == 'deepseek' %}{% set has_deepseek = true %}{% endif %}
+  {% if model.provider == 'perplexity' %}{% set has_perplexity = true %}{% endif %}
+{% endfor %}
+
+{% if has_openai %}
 Secret=openai_api_key,type=env,target=OPENAI_API_KEY
+{% endif %}
+{% if has_anthropic %}
 Secret=anthropic_api_key,type=env,target=ANTHROPIC_API_KEY
+{% endif %}
+{% if has_gemini %}
 Secret=gemini_api_key,type=env,target=GEMINI_API_KEY
+{% endif %}
+{% if has_groq %}
 Secret=groq_api_key,type=env,target=GROQ_API_KEY
+{% endif %}
+{% if has_mistral %}
 Secret=mistral_api_key,type=env,target=MISTRAL_API_KEY
+{% endif %}
+{% if has_openrouter %}
 Secret=openrouter_api_key,type=env,target=OPENROUTER_API_KEY
+{% endif %}
+{% if has_cohere %}
+Secret=cohere_api_key,type=env,target=COHERE_API_KEY
+{% endif %}
+{% if has_deepseek %}
+Secret=deepseek_api_key,type=env,target=DEEPSEEK_API_KEY
+{% endif %}
+{% if has_perplexity %}
 Secret=perplexity_api_key,type=env,target=PERPLEXITY_API_KEY
+{% endif %}
 {% endblock %}
 
 {# Override default health check with LiteLLM-specific endpoint #}

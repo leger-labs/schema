@@ -4,54 +4,29 @@
 # ═════════════════════════════════════════════════════════════════════════════
 
 # ═════════════════════════════════════════════════════════════════════════════
-# 🤖 MODEL DEFINITIONS
+# 🤖 MODEL DEFINITIONS (Resolved from model-store)
 # ═════════════════════════════════════════════════════════════════════════════
 model_list:
   # ───────────────────────────────────────────────────────────────────────────
-  # CLOUD MODELS (OpenAI, Anthropic, Google, etc.)
-  # Auto-generated from blueprint-config.json → litellm.models
+  # CLOUD MODELS (Resolved from model-store/cloud/)
   # ───────────────────────────────────────────────────────────────────────────
-  {% for model in litellm.models %}
-  {%- if model.enabled %}
-  
-  # {{ model.name }} ({{ model.provider | capitalize }}){% if model.description %} - {{ model.description }}{% endif %}
+{% for model in litellm.models %}
+  # {{ model.name }}{% if model.description %} - {{ model.description }}{% endif %}
   - model_name: {{ model.name }}
     litellm_params:
-      {% if model.provider == "openai" -%}
-      model: openai/{{ model.name }}
-      api_key: os.environ/OPENAI_API_KEY
-      {% elif model.provider == "anthropic" -%}
-      model: anthropic/{{ model.name }}
-      api_key: os.environ/ANTHROPIC_API_KEY
-      {% elif model.provider == "gemini" -%}
-      model: gemini/{{ model.name }}
-      api_key: os.environ/GEMINI_API_KEY
-      {% elif model.provider == "openrouter" -%}
-      model: {{ model.openrouter_model }}
-      api_base: https://openrouter.ai/api/v1
-      api_key: os.environ/OPENROUTER_API_KEY
-      custom_llm_provider: openrouter
-      {% elif model.provider == "groq" -%}
-      model: {{ model.groq_model }}
-      api_base: https://api.groq.com/openai/v1
-      api_key: os.environ/GROQ_API_KEY
-      custom_llm_provider: groq
-      {% endif -%}
-      {% if model.context_window -%}
-      max_tokens: {{ model.context_window }}
-      {% endif -%}
-      stream: true
-  {% endif -%}
-  {% endfor %}
+      model: {{ model.litellm_model_name }}
+      api_key: os.environ/{{ model.requires_api_key }}
+{% if model.max_output %}      max_tokens: {{ model.max_output }}
+{% endif %}      stream: true
+{% endfor %}
   
   # ───────────────────────────────────────────────────────────────────────────
-  # LOCAL MODELS (via llama-swap → ramalama)
-  # Auto-generated from blueprint-config.json → local_inference.models
+  # LOCAL MODELS (Resolved from model-store/local/)
   # ───────────────────────────────────────────────────────────────────────────
   {% for key, model in local_inference.models %}
   {%- if model.enabled and model.group != "embeddings" %}
-  
-  # {{ model.display_name }}{% if model.group %} [{{ model.group }} group]{% endif %} (Local)
+
+  # {{ model.display_name }} [{{ model.group }} group]
   - model_name: {{ model.name }}
     litellm_params:
       model: openai/{{ model.name }}
@@ -62,13 +37,13 @@ model_list:
   {% endif -%}
   {% endfor %}
 
-  # ───────────────────────────────────────────────────────────────────────
-  # EMBEDDING MODELS (via llama-swap → ramalama)
-  # ───────────────────────────────────────────────────────────────────────
+  # ───────────────────────────────────────────────────────────────────────────
+  # EMBEDDING MODELS (Resolved from model-store/local/)
+  # ───────────────────────────────────────────────────────────────────────────
   {% for key, model in local_inference.models %}
   {%- if model.enabled and model.group == "embeddings" %}
-  
-  # {{ model.display_name }} [{{ model.group }} group] (Local Embedding)
+
+  # {{ model.display_name }} [{{ model.group }} group]
   - model_name: {{ model.name }}
     litellm_params:
       model: openai/{{ model.name }}
