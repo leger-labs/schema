@@ -1,0 +1,82 @@
+{
+  "tailscale": {
+    "full_hostname": "test.tail8dd1.ts.net",
+    "hostname": "test",
+    "tailnet": "tail8dd1.ts.net"
+  },
+  "infrastructure": {
+    "network": {
+      "name": "llm",
+      "subnet": "10.89.0.0/24"
+    },
+    "services": {
+      "caddy": {
+        "container_name": "caddy",
+        "hostname": "caddy",
+        "port": 443,
+        "published_port": 443,
+        "bind_address": "0.0.0.0"
+      },
+      "litellm": {
+        "container_name": "litellm",
+        "hostname": "litellm",
+        "port": 4000,
+        "published_port": 4000,
+        "bind_address": "127.0.0.1",
+        "requires": ["litellm_postgres", "litellm_redis"]
+      },
+      "litellm_postgres": {
+        "container_name": "litellm-postgres",
+        "hostname": "litellm-postgres",
+        "port": 5432
+      },
+      "litellm_redis": {
+        "container_name": "litellm-redis",
+        "hostname": "litellm-redis",
+        "port": 6379
+      },
+      "llama_swap": {
+        "container_name": "llama-swap",
+        "hostname": "llama-swap",
+        "port": 8000
+      }
+    }
+  },
+  "features": {
+    "rag": false,
+    "web_search": false
+  },
+  "providers": {
+    "vector_db": "none"
+  },
+  "provider_config": {},
+  "models": {
+    "cloud": [],
+    "local": ["qwen3-4b", "qwen3-embedding-8b"]
+  },
+  "local_inference": {
+    "groups": {
+      "task": {
+        "description": "Task models",
+        "swap": false
+      },
+      "embeddings": {
+        "description": "Embedding models",
+        "swap": false
+      }
+    },
+    "defaults": {
+      "log_level": "INFO",
+      "metrics_max_in_memory": 1000,
+      "container_image": "ghcr.io/openai/ramalama:latest",
+      "ngl": -1,
+      "temp": 0.8,
+      "threads": 4,
+      "backend": "vulkan",
+      "cache_reuse": true,
+      "auto_unload": false,
+      "health_check_timeout": 30,
+      "start_port": 8001
+    }
+  }
+}

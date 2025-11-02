@@ -14,6 +14,305 @@ import nunjucks from 'nunjucks';
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, statSync } from 'fs';
 import { join, dirname, relative, resolve } from 'path';
 
+// ============================================================================
+// MODEL RESOLUTION
+// ============================================================================
+
+/**
+ * Fetch model definition from model-store
+ * @param {string} modelId - Model ID (e.g., "gpt-5", "qwen3-4b")
+ * @param {string} type - "cloud" or "local"
+ * @param {string} modelStorePath - Path to model-store directory
+ * @returns {object|null} - Resolved model definition or null if not found
+ */
+function fetchModelDefinition(modelId, type, modelStorePath) {
+  const modelFile = join(modelStorePath, type, `${modelId}.json`);
+  try {
+    const content = readFileSync(modelFile, 'utf-8');
+    const model = JSON.parse(content);
+
+    // Validate model is enabled
+    if (model.enabled === false) {
+      console.warn(`⚠️  Model "${modelId}" is disabled in model-store`);
+      return null;
+    }
+
+    // Warn if deprecated
+    if (model.deprecated) {
+      console.warn(`⚠️  Model "${modelId}" is deprecated`);
+      if (model.replacement) {
+        console.warn(`    Consider using "${model.replacement}" instead`);
+      }
+    }
+
+    return model;
+  } catch (e) {
+    console.error(`❌ Could not load ${type} model "${modelId}": ${e.message}`);
+    return null;
+  }
+}
+
+/**
+ * Resolve all model IDs to full definitions
+ * @param {object} userConfig - User configuration with model IDs
+ * @param {string} modelStorePath - Path to model-store directory
+ * @returns {object} - Resolved models organized by type
+ */
+function resolveModels(userConfig, modelStorePath) {
+  const resolved = {
+    cloud: [],
+    local: {}
+  };
+
+  // Resolve cloud models
+  if (userConfig.models?.cloud) {
+    console.log(`🔍 Resolving ${userConfig.models.cloud.length} cloud models...`);
+    for (const modelId of userConfig.models.cloud) {
+      const model = fetchModelDefinition(modelId, 'cloud', modelStorePath);
+      if (model) {
+        resolved.cloud.push(model);
+        console.log(`  ✅ ${modelId}`);
+      }
+    }
+  }
+
+  // Resolve local models
+  if (userConfig.models?.local) {
+    console.log(`🔍 Resolving ${userConfig.models.local.length} local models...`);
+    for (const modelId of userConfig.models.local) {
+      const model = fetchModelDefinition(modelId, 'local', modelStorePath);
+      if (model) {
+        // Use model ID as key (matches template expectations)
+        resolved.local[modelId] = model;
+        console.log(`  ✅ ${modelId}`);
+      }
+    }
+  }
+
+  return resolved;
+}
+
+/**
+ * Transform resolved cloud models to LiteLLM format
+ * @param {array} cloudModels - Array of resolved cloud model definitions
+ * @returns {array} - LiteLLM-compatible model configurations
+ */
+function transformCloudModelsForLiteLLM(cloudModels) {
+  return cloudModels.map(model => ({
+    // Core identifiers
+    name: model.id,
+    provider: model.provider,
+    litellm_model_name: model.litellm_model_name,
+
+    // API configuration (name only, not actual value)
+    requires_api_key: model.requires_api_key,
+
+    // Capabilities
+    context_window: model.context_window,
+    max_output: model.max_output,
+
+    // Metadata
+    description: model.description || '',
+    capabilities: model.capabilities || [],
+
+    // Control
+    enabled: true
+  }));
+}
+
+/**
+ * Transform resolved local models for llama-swap format
+ * @param {object} localModels - Object of resolved local model definitions
+ * @returns {object} - Llama-swap compatible model configurations
+ */
+function transformLocalModelsForLlamaSwap(localModels) {
+  const transformed = {};
+
+  for (const [modelId, model] of Object.entries(localModels)) {
+    transformed[modelId] = {
+      // Core identifiers
+      name: model.id,
+      display_name: model.name,
+
+      // Model location
+      model_uri: model.model_uri,
+
+      // Configuration
+      enabled: true,
+      group: model.group,
+
+      // Metadata
+      description: model.description || '',
+      quantization: model.quantization,
+      ram_required_gb: model.ram_required_gb,
+      context_length: model.context_window,
+
+      // Runtime settings
+      ctx_size: model.ctx_size || model.context_window,
+      ttl: model.ttl !== undefined ? model.ttl : 0,
+
+      // Hardware
+      flash_attn: model.flash_attn !== false,
+      vulkan_driver: model.vulkan_driver || 'RADV',
+
+      // HuggingFace details (if available)
+      ...(model.hf_repo && { hf_repo: model.hf_repo }),
+      ...(model.hf_file && { hf_file: model.hf_file }),
+
+      // Aliases (if any)
+      ...(model.aliases && { aliases: model.aliases }),
+
+      // Embedding-specific
+      ...(model.embedding_dimension && { embedding_dimension: model.embedding_dimension })
+    };
+  }
+
+  return transformed;
+}
+
+// ============================================================================
+// SECRETS DETECTION (for manifest generation only - never actual values!)
+// ============================================================================
+
+/**
+ * Provider to secret name mapping
+ * NOTE: This maps to the secret NAMES in legerd, not actual values
+ */
+const PROVIDER_SECRET_MAP = {
+  'openai': 'openai_api_key',
+  'anthropic': 'anthropic_api_key',
+  'gemini': 'gemini_api_key',
+  'groq': 'groq_api_key',
+  'mistral': 'mistral_api_key',
+  'openrouter': 'openrouter_api_key',
+  'cohere': 'cohere_api_key',
+  'deepseek': 'deepseek_api_key'
+};
+
+/**
+ * Detect which secrets are required based on resolved cloud models
+ * Returns secret NAMES only, never actual values
+ * @param {array} cloudModels - Resolved cloud models
+ * @returns {array} - Array of required secret names
+ */
+function detectRequiredSecrets(cloudModels) {
+  const required = new Set();
+
+  for (const model of cloudModels) {
+    const secretName = PROVIDER_SECRET_MAP[model.provider];
+    if (secretName) {
+      required.add(secretName);
+    }
+  }
+
+  return Array.from(required).sort();
+}
+
+/**
+ * Generate manifest of required secrets for user reference
+ * This is informational only - actual secrets synced via "leger secrets sync"
+ * @param {array} requiredSecrets - Array of secret names
+ * @param {string} outputDir - Output directory
+ */
+function generateSecretsManifest(requiredSecrets, outputDir) {
+  const manifest = {
+    version: "0.0.1",
+    required_secrets: requiredSecrets,
+    note: "Run 'leger secrets sync' to sync these secrets from Cloudflare KV to legerd"
+  };
+
+  // Ensure output directory exists
+  if (!existsSync(outputDir)) {
+    mkdirSync(outputDir, { recursive: true });
+  }
+
+  const manifestPath = join(outputDir, 'required-secrets.json');
+  writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+
+  if (requiredSecrets.length > 0) {
+    console.log('');
+    console.log('🔑 Required secrets detected:');
+    requiredSecrets.forEach(secret => console.log(`   - ${secret}`));
+    console.log('');
+    console.log('   Run: leger secrets sync');
+    console.log('   Then: leger deploy install');
+  }
+}
+
+/**
+ * Build context with resolved models
+ * NO SECRETS - those are managed orthogonally via leger CLI
+ * @param {object} userConfig - User configuration
+ * @param {object} resolvedModels - Resolved model definitions
+ * @param {object} releaseCatalog - Release catalog
+ * @returns {object} - Complete template context
+ */
+function buildContextWithModels(userConfig, resolvedModels, releaseCatalog) {
+  // Build the litellm context with resolved models
+  const litellmContext = {
+    models: transformCloudModelsForLiteLLM(resolvedModels.cloud),
+    database_url: userConfig.litellm?.database_url ||
+                  "postgresql://litellm@litellm-postgres:5432/litellm",
+    drop_params: userConfig.litellm?.drop_params !== false
+  };
+
+  // Build the local_inference context with resolved models
+  const localInferenceContext = {
+    models: transformLocalModelsForLlamaSwap(resolvedModels.local),
+    groups: userConfig.local_inference?.groups || {},
+    defaults: userConfig.local_inference?.defaults || {}
+  };
+
+  return {
+    infrastructure: userConfig.infrastructure || {},
+    features: userConfig.features || {},
+    providers: userConfig.providers || {},
+    provider_config: userConfig.provider_config || {},
+    tailscale: userConfig.tailscale || {
+      full_hostname: 'blueprint.tail8dd1.ts.net',
+      hostname: 'blueprint',
+      tailnet: 'tail8dd1.ts.net'
+    },
+
+    // ENHANCED: Resolved cloud models for LiteLLM
+    litellm: litellmContext,
+
+    // ENHANCED: Resolved local models for llama-swap
+    local_inference: localInferenceContext,
+
+    // For templates that reference specific services directly
+    openwebui: {
+      providers: userConfig.providers || {},
+      features: userConfig.features || {},
+      service: {
+        timeout_start_sec: userConfig.provider_config?.openwebui_timeout_start || 900
+      }
+    },
+    qdrant: {
+      providers: userConfig.providers || {},
+      features: userConfig.features || {}
+    },
+    searxng: {
+      providers: userConfig.providers || {},
+      features: userConfig.features || {}
+    },
+    jupyter: {
+      providers: userConfig.providers || {},
+      features: userConfig.features || {}
+    },
+    mcp_context_forge: {
+      providers: userConfig.providers || {},
+      features: userConfig.features || {},
+      jwt_algorithm: 'HS256',
+      environment: 'production',
+      log_level: 'INFO'
+    },
+
+    // Release catalog
+    catalog: releaseCatalog
+  };
+}
+
 // Parse command line arguments
 const args = process.argv.slice(2);
 if (args.length < 3) {
@@ -26,11 +325,17 @@ if (args.length < 3) {
 
 const [configPath, templatesDir, outputDir] = args;
 
-console.log('📋 Leger Schema Renderer');
-console.log('========================');
+// NEW: Determine model store path (check if model-store exists in templates dir or use external)
+const modelStorePath = existsSync(join(templatesDir, 'model-store'))
+  ? join(templatesDir, 'model-store')
+  : '/home/user/model-store';
+
+console.log('📋 Enhanced Leger Renderer with Model Resolution');
+console.log('='.repeat(60));
 console.log('');
 console.log('Config:', configPath);
 console.log('Templates:', templatesDir);
+console.log('Model Store:', modelStorePath);
 console.log('Output:', outputDir);
 console.log('');
 
@@ -54,6 +359,26 @@ try {
   console.error('⚠️  Warning: Could not load release-catalog.json');
   releaseCatalog = { services: {}, release: { version: '0.0.1' } };
 }
+
+// NEW: Resolve models from model-store
+console.log('');
+let resolvedModels = { cloud: [], local: {} };
+
+if (userConfig.models) {
+  console.log('🔍 Resolving model definitions from model-store...');
+  resolvedModels = resolveModels(userConfig, modelStorePath);
+  console.log('');
+  console.log(`✅ Resolved ${resolvedModels.cloud.length} cloud models`);
+  console.log(`✅ Resolved ${Object.keys(resolvedModels.local).length} local models`);
+} else {
+  console.log('ℹ️  No models specified in configuration');
+}
+
+// NEW: Detect required secrets and generate manifest
+const requiredSecrets = detectRequiredSecrets(resolvedModels.cloud);
+generateSecretsManifest(requiredSecrets, outputDir);
+
+console.log('');
 
 // Configure Nunjucks environment
 const env = new nunjucks.Environment(
@@ -214,69 +539,8 @@ if (existsSync(servicesDir)) {
 console.log(`📄 Found ${templateFiles.length} template files`);
 console.log('');
 
-// Prepare rendering context
-// The templates expect this structure:
-// - infrastructure.services.X
-// - infrastructure.network
-// - features.X
-// - providers.X
-// - provider_config.X
-// - secrets.X
-const context = {
-  infrastructure: userConfig.infrastructure || {},
-  features: userConfig.features || {},
-  providers: userConfig.providers || {},
-  provider_config: userConfig.provider_config || {},
-  secrets: userConfig.secrets || {},
-
-  // Tailscale configuration (referenced by templates)
-  tailscale: {
-    full_hostname: userConfig.tailscale?.full_hostname || 'blueprint.tail8dd1.ts.net',
-    hostname: userConfig.tailscale?.hostname || 'blueprint',
-    tailnet: userConfig.tailscale?.tailnet || 'tail8dd1.ts.net'
-  },
-
-  // For templates that reference specific services directly
-  openwebui: {
-    providers: userConfig.providers || {},
-    features: userConfig.features || {},
-    service: {
-      timeout_start_sec: userConfig.provider_config?.openwebui_timeout_start || 900
-    }
-  },
-  litellm: userConfig.litellm || {
-    providers: userConfig.providers || {},
-    features: userConfig.features || {},
-    models: [],
-    database_url: "postgresql://litellm@litellm-postgres:5432/litellm",
-    drop_params: true
-  },
-  local_inference: userConfig.local_inference || {
-    models: {}
-  },
-  qdrant: {
-    providers: userConfig.providers || {},
-    features: userConfig.features || {}
-  },
-  searxng: {
-    providers: userConfig.providers || {},
-    features: userConfig.features || {}
-  },
-  jupyter: {
-    providers: userConfig.providers || {},
-    features: userConfig.features || {}
-  },
-  mcp_context_forge: {
-    providers: userConfig.providers || {},
-    features: userConfig.features || {},
-    jwt_algorithm: 'HS256',
-    environment: 'production',
-    log_level: 'INFO'
-  },
-
-  // Release catalog is loaded via readFile in templates
-  catalog: releaseCatalog
-};
+// Build context with resolved models (NO SECRETS)
+const context = buildContextWithModels(userConfig, resolvedModels, releaseCatalog);
 
 // Validate that all referenced services exist
 function validateContext(context) {
