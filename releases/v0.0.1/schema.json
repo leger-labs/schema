@@ -884,11 +884,16 @@
         "rag_embedding_model": {
           "type": "string",
           "title": "RAG Embedding Model",
-          "description": "OpenAI embedding model for RAG (e.g., text-embedding-3-small, text-embedding-3-large)",
-          "default": "text-embedding-3-small",
+          "description": "Model ID for RAG embeddings. Must be an embedding model from model-store.",
+          "default": "qwen3-embedding-8b",
+          "examples": ["qwen3-embedding-8b", "nomic-embed-text-v1.5"],
           "x-depends-on": {
+            "features.rag": true,
             "providers.rag_embedding": "openai"
           },
+          "x-model-reference": true,
+          "x-auto-install": true,
+          "x-group-filter": "embeddings",
           "x-category": "Providers",
           "x-display-order": 111
         },
@@ -896,11 +901,16 @@
         "ollama_embedding_model": {
           "type": "string",
           "title": "Ollama Embedding Model",
-          "description": "Ollama embedding model for RAG (e.g., nomic-embed-text, mxbai-embed-large)",
-          "default": "nomic-embed-text",
+          "description": "Model ID for Ollama embeddings (if using native Ollama daemon).",
+          "default": "nomic-embed-text-v1.5",
+          "examples": ["nomic-embed-text-v1.5", "qwen3-embedding-8b"],
           "x-depends-on": {
+            "features.rag": true,
             "providers.rag_embedding": "ollama"
           },
+          "x-model-reference": true,
+          "x-auto-install": true,
+          "x-group-filter": "embeddings",
           "x-category": "Providers",
           "x-display-order": 112
         },
@@ -1379,11 +1389,14 @@
         "task_model_title": {
           "type": "string",
           "title": "Task Model: Title Generation",
-          "description": "AI model for generating conversation titles (leave empty for default)",
-          "default": "",
+          "description": "Model ID for generating chat titles (ultra-fast, <1B params). Must exist in model-store.",
+          "default": "qwen3-0.6b",
+          "examples": ["qwen3-0.6b", "gpt-5-nano"],
           "x-depends-on": {
             "features.title_generation": true
           },
+          "x-model-reference": true,
+          "x-auto-install": true,
           "x-category": "Advanced",
           "x-display-order": 301
         },
@@ -1391,25 +1404,76 @@
         "task_model_tags": {
           "type": "string",
           "title": "Task Model: Tags Generation",
-          "description": "AI model for generating conversation tags (leave empty for default)",
-          "default": "",
+          "description": "Model ID for generating conversation tags (balanced, 3-4B params). Must exist in model-store.",
+          "default": "qwen3-4b",
+          "examples": ["qwen3-4b", "gpt-5-mini"],
           "x-depends-on": {
             "features.tags_generation": true
           },
+          "x-model-reference": true,
+          "x-auto-install": true,
           "x-category": "Advanced",
           "x-display-order": 302
+        },
+
+        "task_model_autocomplete": {
+          "type": "string",
+          "title": "Task Model: Autocomplete Generation",
+          "description": "Model ID for autocomplete suggestions (ultra-fast, <1B params). Must exist in model-store.",
+          "default": "qwen3-0.6b",
+          "examples": ["qwen3-0.6b", "gpt-5-nano"],
+          "x-depends-on": {
+            "features.autocomplete_generation": true
+          },
+          "x-model-reference": true,
+          "x-auto-install": true,
+          "x-category": "Advanced",
+          "x-display-order": 303
         },
 
         "task_model_query": {
           "type": "string",
           "title": "Task Model: Query Generation",
-          "description": "AI model for generating RAG queries (leave empty for default)",
-          "default": "",
+          "description": "Model ID for RAG query rewriting (balanced, 3-4B params). Must exist in model-store.",
+          "default": "qwen3-4b",
+          "examples": ["qwen3-4b", "gpt-5-mini"],
           "x-depends-on": {
             "features.rag": true
           },
+          "x-model-reference": true,
+          "x-auto-install": true,
           "x-category": "Advanced",
-          "x-display-order": 303
+          "x-display-order": 304
+        },
+
+        "task_model_search_query": {
+          "type": "string",
+          "title": "Task Model: Search Query Generation",
+          "description": "Model ID for web search query generation. Must exist in model-store.",
+          "default": "qwen3-4b",
+          "examples": ["qwen3-4b", "gpt-5-mini"],
+          "x-depends-on": {
+            "features.web_search": true
+          },
+          "x-model-reference": true,
+          "x-auto-install": true,
+          "x-category": "Advanced",
+          "x-display-order": 305
+        },
+
+        "task_model_rag_template": {
+          "type": "string",
+          "title": "Task Model: RAG Template Generation",
+          "description": "Model ID for RAG template generation. Must exist in model-store.",
+          "default": "qwen3-4b",
+          "examples": ["qwen3-4b", "gpt-5-mini"],
+          "x-depends-on": {
+            "features.rag": true
+          },
+          "x-model-reference": true,
+          "x-auto-install": true,
+          "x-category": "Advanced",
+          "x-display-order": 306
         },
 
         "log_level": {

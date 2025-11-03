@@ -171,6 +171,148 @@ function transformLocalModelsForLlamaSwap(localModels) {
 }
 
 // ============================================================================
+// MODEL REFERENCE COLLECTION & VALIDATION
+// ============================================================================
+
+/**
+ * Collect all model references from provider_config
+ * These are fields marked with x-model-reference in schema
+ * @param {object} userConfig - User configuration
+ * @returns {array} - Array of model reference objects
+ */
+function collectModelReferences(userConfig) {
+  const references = [];
+
+  // Task model fields
+  const taskModelFields = [
+    'task_model_title',
+    'task_model_tags',
+    'task_model_autocomplete',
+    'task_model_query',
+    'task_model_search_query',
+    'task_model_rag_template'
+  ];
+
+  taskModelFields.forEach(field => {
+    const modelId = userConfig.provider_config?.[field];
+    if (modelId && modelId !== '') {
+      references.push({
+        field,
+        modelId,
+        type: 'local',  // Task models should be local for speed
+        groupFilter: 'task'
+      });
+    }
+  });
+
+  // RAG embedding model
+  if (userConfig.features?.rag) {
+    const embeddingProvider = userConfig.providers?.rag_embedding;
+
+    if (embeddingProvider === 'openai') {
+      const modelId = userConfig.provider_config?.rag_embedding_model;
+      if (modelId) {
+        references.push({
+          field: 'rag_embedding_model',
+          modelId,
+          type: 'local',
+          groupFilter: 'embeddings'
+        });
+      }
+    } else if (embeddingProvider === 'ollama') {
+      const modelId = userConfig.provider_config?.ollama_embedding_model;
+      if (modelId) {
+        references.push({
+          field: 'ollama_embedding_model',
+          modelId,
+          type: 'local',
+          groupFilter: 'embeddings'
+        });
+      }
+    }
+  }
+
+  return references;
+}
+
+/**
+ * Auto-install referenced models not in user's models list
+ * @param {object} userConfig - User configuration (will be mutated)
+ * @param {array} modelReferences - Array of model reference objects
+ * @param {string} modelStorePath - Path to model-store directory
+ * @returns {array} - Array of auto-installed model IDs
+ */
+function autoInstallReferencedModels(userConfig, modelReferences, modelStorePath) {
+  // Ensure models.local array exists
+  if (!userConfig.models) {
+    userConfig.models = { cloud: [], local: [] };
+  }
+  if (!userConfig.models.local) {
+    userConfig.models.local = [];
+  }
+
+  const existingLocal = new Set(userConfig.models.local);
+  const autoInstalled = [];
+
+  for (const ref of modelReferences) {
+    if (ref.type === 'local' && !existingLocal.has(ref.modelId)) {
+      // Verify model exists in model-store before auto-installing
+      const modelPath = join(modelStorePath, 'local', `${ref.modelId}.json`);
+
+      if (existsSync(modelPath)) {
+        userConfig.models.local.push(ref.modelId);
+        existingLocal.add(ref.modelId); // Update the set to avoid duplicates
+        autoInstalled.push(ref.modelId);
+        console.log(`  ✅ Auto-installed: ${ref.modelId} (referenced by ${ref.field})`);
+      } else {
+        console.error('');
+        console.error(`❌ Referenced model '${ref.modelId}' not found in model-store`);
+        console.error(`   Field: ${ref.field}`);
+        console.error(`   Path: ${modelPath}`);
+        console.error('');
+        process.exit(1);
+      }
+    }
+  }
+
+  return autoInstalled;
+}
+
+/**
+ * Validate model references after resolution
+ * @param {array} modelReferences - Array of model reference objects
+ * @param {object} resolvedModels - Resolved models from model-store
+ * @returns {array} - Array of validation error messages (empty if valid)
+ */
+function validateModelReferences(modelReferences, resolvedModels) {
+  const errors = [];
+
+  const allModelIds = new Set([
+    ...resolvedModels.cloud.map(m => m.id),
+    ...Object.keys(resolvedModels.local)
+  ]);
+
+  for (const ref of modelReferences) {
+    if (!allModelIds.has(ref.modelId)) {
+      errors.push(`Field '${ref.field}' references unknown model '${ref.modelId}'`);
+    }
+
+    // Validate group filter if specified
+    if (ref.groupFilter) {
+      const model = resolvedModels.local[ref.modelId];
+      if (model && model.group !== ref.groupFilter) {
+        errors.push(
+          `Field '${ref.field}' requires group '${ref.groupFilter}' ` +
+          `but model '${ref.modelId}' is group '${model.group}'`
+        );
+      }
+    }
+  }
+
+  return errors;
+}
+
+// ============================================================================
 // SECRETS DETECTION (for manifest generation only - never actual values!)
 // ============================================================================
 
@@ -360,6 +502,31 @@ try {
   releaseCatalog = { services: {}, release: { version: '0.0.1' } };
 }
 
+// NEW: Collect model references from provider_config
+console.log('');
+console.log('🔍 Collecting model references from config...');
+const modelReferences = collectModelReferences(userConfig);
+
+if (modelReferences.length > 0) {
+  console.log(`📋 Found ${modelReferences.length} model reference(s):`);
+  modelReferences.forEach(ref => {
+    console.log(`   - ${ref.field}: ${ref.modelId}`);
+  });
+} else {
+  console.log('ℹ️  No model references found in provider_config');
+}
+
+// NEW: Auto-install referenced models
+console.log('');
+console.log('📦 Auto-installing referenced models...');
+const autoInstalled = autoInstallReferencedModels(userConfig, modelReferences, modelStorePath);
+
+if (autoInstalled.length > 0) {
+  console.log('');
+  console.log(`📦 Auto-installed ${autoInstalled.length} referenced model(s)`);
+  console.log('');
+}
+
 // NEW: Resolve models from model-store
 console.log('');
 let resolvedModels = { cloud: [], local: {} };
@@ -372,6 +539,23 @@ if (userConfig.models) {
   console.log(`✅ Resolved ${Object.keys(resolvedModels.local).length} local models`);
 } else {
   console.log('ℹ️  No models specified in configuration');
+}
+
+// NEW: Validate model references
+console.log('');
+console.log('✅ Validating model references...');
+const validationErrors = validateModelReferences(modelReferences, resolvedModels);
+
+if (validationErrors.length > 0) {
+  console.error('');
+  console.error('❌ Model reference validation failed:');
+  validationErrors.forEach(err => console.error(`   ${err}`));
+  console.error('');
+  process.exit(1);
+}
+
+if (modelReferences.length > 0) {
+  console.log('✅ All model references validated successfully');
 }
 
 // NEW: Detect required secrets and generate manifest
