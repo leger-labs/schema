@@ -25,7 +25,6 @@
           "description": "Your full Tailscale MagicDNS hostname (e.g., blueprint.tail8dd1.ts.net)",
           "pattern": "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\\.tail[a-z0-9]+\\.ts\\.net$",
           "x-display-order": 1,
-          "x-help": "Find this in your Tailscale admin console under 'DNS' settings. Format: <machine-name>.<tailnet-id>.ts.net",
           "examples": [
             "myserver.tail8dd1.ts.net",
             "blueprint.tail8dd1.ts.net",
@@ -368,8 +367,7 @@
           "title": "RAG (Retrieval-Augmented Generation)",
           "default": false,
           "x-category": "Features",
-          "x-display-order": 100,
-          "x-rationale": "Enable semantic search over documents using vector databases"
+          "x-display-order": 100
         },
         
         "web_search": {
@@ -377,8 +375,7 @@
           "title": "Web Search",
           "default": false,
           "x-category": "Features",
-          "x-display-order": 101,
-          "x-rationale": "Enable LLM to search the web for current information"
+          "x-display-order": 101
         },
         
         "image_generation": {
@@ -386,8 +383,7 @@
           "title": "Image Generation",
           "default": false,
           "x-category": "Features",
-          "x-display-order": 102,
-          "x-rationale": "Enable AI image generation capabilities"
+          "x-display-order": 102
         },
         
         "speech_to_text": {
@@ -395,8 +391,7 @@
           "title": "Speech-to-Text",
           "default": false,
           "x-category": "Features",
-          "x-display-order": 103,
-          "x-rationale": "Enable voice input transcription"
+          "x-display-order": 103
         },
         
         "text_to_speech": {
@@ -404,8 +399,7 @@
           "title": "Text-to-Speech",
           "default": false,
           "x-category": "Features",
-          "x-display-order": 104,
-          "x-rationale": "Enable AI voice output"
+          "x-display-order": 104
         },
         
         "code_execution": {
@@ -413,8 +407,7 @@
           "title": "Code Execution",
           "default": false,
           "x-category": "Features",
-          "x-display-order": 105,
-          "x-rationale": "Allow LLM to write and execute Python code"
+          "x-display-order": 105
         },
         
         "code_interpreter": {
@@ -422,8 +415,7 @@
           "title": "Code Interpreter",
           "default": false,
           "x-category": "Features",
-          "x-display-order": 106,
-          "x-rationale": "Enable interactive code execution environment"
+          "x-display-order": 106
         },
         
         "google_drive": {
@@ -431,8 +423,7 @@
           "title": "Google Drive Integration",
           "default": false,
           "x-category": "Features",
-          "x-display-order": 107,
-          "x-rationale": "Connect to Google Drive for document access"
+          "x-display-order": 107
         },
         
         "onedrive": {
@@ -440,8 +431,7 @@
           "title": "OneDrive Integration",
           "default": false,
           "x-category": "Features",
-          "x-display-order": 108,
-          "x-rationale": "Connect to OneDrive for document access"
+          "x-display-order": 108
         },
         
         "oauth_signup": {
@@ -449,8 +439,7 @@
           "title": "OAuth Signup",
           "default": false,
           "x-category": "Security",
-          "x-display-order": 200,
-          "x-rationale": "Enable OAuth-based user registration"
+          "x-display-order": 200
         },
         
         "ldap": {
@@ -458,8 +447,7 @@
           "title": "LDAP Authentication",
           "default": false,
           "x-category": "Security",
-          "x-display-order": 201,
-          "x-rationale": "Enable LDAP directory authentication"
+          "x-display-order": 201
         },
         
         "title_generation": {
@@ -467,8 +455,7 @@
           "title": "AI Title Generation",
           "default": true,
           "x-category": "AI Assistance",
-          "x-display-order": 300,
-          "x-rationale": "Automatically generate conversation titles"
+          "x-display-order": 300
         },
         
         "autocomplete_generation": {
@@ -476,8 +463,7 @@
           "title": "Autocomplete Generation",
           "default": true,
           "x-category": "AI Assistance",
-          "x-display-order": 301,
-          "x-rationale": "Enable AI-powered autocomplete suggestions"
+          "x-display-order": 301
         },
         
         "tags_generation": {
@@ -485,8 +471,7 @@
           "title": "Tags Generation",
           "default": true,
           "x-category": "AI Assistance",
-          "x-display-order": 302,
-          "x-rationale": "Automatically generate conversation tags"
+          "x-display-order": 302
         },
         
         "websocket_support": {
@@ -494,8 +479,7 @@
           "title": "WebSocket Support",
           "default": true,
           "x-category": "Advanced",
-          "x-display-order": 400,
-          "x-rationale": "Enable real-time WebSocket connections"
+          "x-display-order": 400
         }
       }
     },
@@ -514,22 +498,6 @@
           "x-display-order": 100,
           "x-depends-on": {
             "features.rag": true
-          },
-          "x-affects-services": {
-            "pgvector": [],
-            "qdrant": ["qdrant"],
-            "chroma": []
-          },
-          "x-provider-fields": {
-            "qdrant": [
-              "qdrant_url",
-              "qdrant_api_key",
-              "qdrant_grpc_port",
-              "qdrant_prefer_grpc",
-              "qdrant_on_disk"
-            ],
-            "pgvector": [],
-            "chroma": []
           }
         },
         
@@ -542,10 +510,6 @@
           "x-display-order": 101,
           "x-depends-on": {
             "features.rag": true
-          },
-          "x-provider-fields": {
-            "openai": ["rag_embedding_api_key"],
-            "ollama": []
           }
         },
         
@@ -558,14 +522,6 @@
           "x-display-order": 102,
           "x-depends-on": {
             "features.rag": true
-          },
-          "x-affects-services": {
-            "tika": ["tika"],
-            "docling": []
-          },
-          "x-provider-fields": {
-            "tika": ["tika_server_url", "tika_heap_size"],
-            "docling": []
           }
         },
         
@@ -590,22 +546,6 @@
           "x-display-order": 110,
           "x-depends-on": {
             "features.web_search": true
-          },
-          "x-affects-services": {
-            "searxng": ["searxng", "searxng_redis"],
-            "tavily": [],
-            "brave": []
-          },
-          "x-provider-fields": {
-            "searxng": [
-              "searxng_query_url",
-              "searxng_base_url",
-              "searxng_safe_search",
-              "searxng_autocomplete",
-              "searxng_max_page"
-            ],
-            "tavily": ["tavily_api_key"],
-            "brave": ["brave_api_key"]
           }
         },
         
@@ -630,23 +570,6 @@
           "x-display-order": 120,
           "x-depends-on": {
             "features.image_generation": true
-          },
-          "x-affects-services": {
-            "comfyui": ["comfyui"],
-            "automatic1111": [],
-            "openai": []
-          },
-          "x-provider-fields": {
-            "comfyui": [
-              "comfyui_workspace",
-              "comfyui_auto_update",
-              "comfyui_web_enable_auth",
-              "comfyui_log_level",
-              "comfyui_args",
-              "comfyui_startup_timeout"
-            ],
-            "automatic1111": [],
-            "openai": []
           }
         },
         
@@ -659,21 +582,6 @@
           "x-display-order": 130,
           "x-depends-on": {
             "features.speech_to_text": true
-          },
-          "x-affects-services": {
-            "whisper": ["whisper"],
-            "openai": []
-          },
-          "x-provider-fields": {
-            "whisper": [
-              "whisper_model",
-              "whisper_language",
-              "whisper_beam_size",
-              "whisper_compute_type",
-              "whisper_device",
-              "whisper_cache_dir"
-            ],
-            "openai": ["stt_api_key"]
           }
         },
         
@@ -686,22 +594,6 @@
           "x-display-order": 131,
           "x-depends-on": {
             "features.text_to_speech": true
-          },
-          "x-affects-services": {
-            "edgetts": ["edgetts"],
-            "elevenlabs": [],
-            "openai": []
-          },
-          "x-provider-fields": {
-            "edgetts": [
-              "edgetts_response_format",
-              "edgetts_speed",
-              "edgetts_voice",
-              "edgetts_log_level",
-              "edgetts_startup_timeout"
-            ],
-            "elevenlabs": ["elevenlabs_api_key"],
-            "openai": ["tts_api_key"]
           }
         },
         
@@ -714,13 +606,6 @@
           "x-display-order": 140,
           "x-depends-on": {
             "features.code_execution": true
-          },
-          "x-affects-services": {
-            "jupyter": ["jupyter"],
-            "pyodide": []
-          },
-          "x-provider-fields": {
-            "jupyter": ["jupyter_disable_execute_tool"]
           }
         },
         
@@ -733,13 +618,6 @@
           "x-display-order": 141,
           "x-depends-on": {
             "features.code_interpreter": true
-          },
-          "x-affects-services": {
-            "jupyter": ["jupyter"],
-            "e2b": []
-          },
-          "x-provider-fields": {
-            "e2b": ["e2b_api_key"]
           }
         },
         
@@ -1519,14 +1397,7 @@
           "title": "OpenAI API Key",
           "description": "OpenAI API key for GPT models, embeddings, and speech services. Register at https://platform.openai.com/api-keys",
           "default": "{OPENAI_API_KEY}",
-          "x-sensitive": true,
-          "x-secret-type": "api-key",
-          "x-provider": "openai",
-          "x-required-by": ["litellm"],
-          "x-required-when": {
-            "comment": "Required when using OpenAI models in LiteLLM config"
-          },
-          "x-leger-namespace": "leger/{user-uuid}/openai_api_key"
+          "x-sensitive": true
         },
 
         "anthropic_api_key": {
@@ -1534,14 +1405,7 @@
           "title": "Anthropic API Key",
           "description": "Anthropic API key for Claude models. Register at https://console.anthropic.com/",
           "default": "{ANTHROPIC_API_KEY}",
-          "x-sensitive": true,
-          "x-secret-type": "api-key",
-          "x-provider": "anthropic",
-          "x-required-by": ["litellm"],
-          "x-required-when": {
-            "comment": "Required when using Claude models in LiteLLM config"
-          },
-          "x-leger-namespace": "leger/{user-uuid}/anthropic_api_key"
+          "x-sensitive": true
         },
 
         "gemini_api_key": {
@@ -1549,14 +1413,7 @@
           "title": "Google Gemini API Key",
           "description": "Google Gemini API key for Gemini models. Register at https://makersuite.google.com/app/apikey",
           "default": "{GEMINI_API_KEY}",
-          "x-sensitive": true,
-          "x-secret-type": "api-key",
-          "x-provider": "gemini",
-          "x-required-by": ["litellm"],
-          "x-required-when": {
-            "comment": "Required when using Gemini models in LiteLLM config"
-          },
-          "x-leger-namespace": "leger/{user-uuid}/gemini_api_key"
+          "x-sensitive": true
         },
 
         "groq_api_key": {
@@ -1564,14 +1421,7 @@
           "title": "Groq API Key",
           "description": "Groq API key for fast inference. Register at https://console.groq.com/",
           "default": "{GROQ_API_KEY}",
-          "x-sensitive": true,
-          "x-secret-type": "api-key",
-          "x-provider": "groq",
-          "x-required-by": ["litellm"],
-          "x-required-when": {
-            "comment": "Required when using Groq models in LiteLLM config"
-          },
-          "x-leger-namespace": "leger/{user-uuid}/groq_api_key"
+          "x-sensitive": true
         },
 
         "mistral_api_key": {
@@ -1579,14 +1429,7 @@
           "title": "Mistral API Key",
           "description": "Mistral API key for Mistral models. Register at https://console.mistral.ai/",
           "default": "{MISTRAL_API_KEY}",
-          "x-sensitive": true,
-          "x-secret-type": "api-key",
-          "x-provider": "mistral",
-          "x-required-by": ["litellm"],
-          "x-required-when": {
-            "comment": "Required when using Mistral models in LiteLLM config"
-          },
-          "x-leger-namespace": "leger/{user-uuid}/mistral_api_key"
+          "x-sensitive": true
         },
 
         "openrouter_api_key": {
@@ -1594,14 +1437,7 @@
           "title": "OpenRouter API Key",
           "description": "OpenRouter API key for unified model access. Register at https://openrouter.ai/keys",
           "default": "{OPENROUTER_API_KEY}",
-          "x-sensitive": true,
-          "x-secret-type": "api-key",
-          "x-provider": "openrouter",
-          "x-required-by": ["litellm"],
-          "x-required-when": {
-            "comment": "Required when using OpenRouter models in LiteLLM config"
-          },
-          "x-leger-namespace": "leger/{user-uuid}/openrouter_api_key"
+          "x-sensitive": true
         },
 
         "perplexity_api_key": {
@@ -1609,14 +1445,7 @@
           "title": "Perplexity API Key",
           "description": "Perplexity API key for Perplexity models and search. Register at https://www.perplexity.ai/settings/api",
           "default": "{PERPLEXITY_API_KEY}",
-          "x-sensitive": true,
-          "x-secret-type": "api-key",
-          "x-provider": "perplexity",
-          "x-required-by": ["litellm"],
-          "x-required-when": {
-            "comment": "Required when using Perplexity models in LiteLLM config"
-          },
-          "x-leger-namespace": "leger/{user-uuid}/perplexity_api_key"
+          "x-sensitive": true
         },
 
         "tavily_api_key": {
@@ -1624,14 +1453,7 @@
           "title": "Tavily Search API Key",
           "description": "Tavily API key for AI-powered web search. Register at https://tavily.com/",
           "default": "{TAVILY_API_KEY}",
-          "x-sensitive": true,
-          "x-secret-type": "api-key",
-          "x-provider": "tavily",
-          "x-required-by": ["openwebui"],
-          "x-required-when": {
-            "providers.web_search_engine": "tavily"
-          },
-          "x-leger-namespace": "leger/{user-uuid}/tavily_api_key"
+          "x-sensitive": true
         },
 
         "hf_token": {
@@ -1639,14 +1461,7 @@
           "title": "HuggingFace API Token",
           "description": "HuggingFace token for model downloads. Register at https://huggingface.co/settings/tokens",
           "default": "{HF_TOKEN}",
-          "x-sensitive": true,
-          "x-secret-type": "token",
-          "x-provider": "huggingface",
-          "x-required-by": ["comfyui"],
-          "x-required-when": {
-            "providers.image_engine": "comfyui"
-          },
-          "x-leger-namespace": "leger/{user-uuid}/hf_token"
+          "x-sensitive": true
         },
 
         "civitai_token": {
@@ -1654,14 +1469,7 @@
           "title": "CivitAI API Token",
           "description": "CivitAI token for model downloads. Register at https://civitai.com/user/account",
           "default": "{CIVITAI_TOKEN}",
-          "x-sensitive": true,
-          "x-secret-type": "token",
-          "x-provider": "civitai",
-          "x-required-by": ["comfyui"],
-          "x-required-when": {
-            "providers.image_engine": "comfyui"
-          },
-          "x-leger-namespace": "leger/{user-uuid}/civitai_token"
+          "x-sensitive": true
         }
       }
     }
